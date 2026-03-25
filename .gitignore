@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Virtual environments
+venv/
+.env/
+
+# Dataset
+data/ham10000/
+
+# Large model files
+models/*.keras
+models/*.h5
+models/*.ckpt
+
+# Uploaded/generated files
+app/static/uploads/
+app/static/gradcam/
+uploads/
+results/temp/
+
+# Logs
+*.log

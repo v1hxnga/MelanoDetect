@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MelanoDetect Result</title>
+</head>
+<body>
+    <h1>Prediction Result</h1>
+
+    <p><strong>Predicted Label:</strong> {{ label }}</p>
+    <p><strong>Confidence:</strong> {{ confidence }}%</p>
+    <p><strong>Explanation:</strong> {{ explanation }}</p>
+
+    <p><strong>Disclaimer:</strong> This system supports early screening only and does not replace professional medical diagnosis or laboratory confirmation.</p>
+
+    <h2>Uploaded Image</h2>
+    <img src="{{ uploaded_image }}" width="300">
+
+    <h2>Grad-CAM Overlay</h2>
+    <img src="{{ gradcam_image }}" width="300">
+
+    <br><br>
+    <a href="/">Try Another Image</a>
+</body>
+</html>
