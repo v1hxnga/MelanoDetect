@@ -3,26 +3,52 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 from tensorflow.keras.utils import load_img, img_to_array, array_to_img
 
-LAST_CONV_LAYER = "conv2d_2"
+BASE_MODEL_NAME = "efficientnetb0"
 
-def build_gradcam_model_from_sequential(base_model, last_conv_layer_name=LAST_CONV_LAYER):
-    inputs = tf.keras.Input(shape=(224, 224, 3))
-    x = inputs
-    last_conv_output = None
 
-    for layer in base_model.layers:
-        x = layer(x)
-        if layer.name == last_conv_layer_name:
-            last_conv_output = x
+def find_last_conv_layer_name(base_model):
+    for layer in reversed(base_model.layers):
+        if isinstance(layer, tf.keras.layers.Conv2D):
+            return layer.name
+    raise ValueError("No Conv2D layer found in the base model.")
 
-    grad_model = tf.keras.Model(inputs=inputs, outputs=[last_conv_output, x])
-    return grad_model
 
-def make_gradcam_heatmap(img_array, grad_model):
+def build_gradcam_model(model, base_model_name=BASE_MODEL_NAME):
+    base_model = model.get_layer(base_model_name)
+    last_conv_layer_name = find_last_conv_layer_name(base_model)
+    last_conv_layer = base_model.get_layer(last_conv_layer_name)
+
+    # Extract both the last conv output and the base model output
+    feature_extractor = tf.keras.Model(
+        inputs=base_model.input,
+        outputs=[last_conv_layer.output, base_model.output]
+    )
+
+    return feature_extractor, base_model, last_conv_layer_name
+
+
+def make_gradcam_heatmap(img_array, model, feature_extractor, base_model):
     img_tensor = tf.convert_to_tensor(img_array, dtype=tf.float32)
 
     with tf.GradientTape() as tape:
-        conv_outputs, predictions = grad_model(img_tensor, training=False)
+        conv_outputs, base_output = feature_extractor(img_tensor, training=False)
+
+        x = base_output
+
+        # Pass through layers after EfficientNetB0
+        passed_base = False
+        for layer in model.layers:
+            if layer.name == base_model.name:
+                passed_base = True
+                continue
+
+            if passed_base:
+                try:
+                    x = layer(x, training=False)
+                except TypeError:
+                    x = layer(x)
+
+        predictions = x
         class_channel = predictions[:, 0]
 
     grads = tape.gradient(class_channel, conv_outputs)
@@ -37,6 +63,7 @@ def make_gradcam_heatmap(img_array, grad_model):
         heatmap = heatmap / max_val
 
     return heatmap.numpy()
+
 
 def save_gradcam_overlay(img_path, heatmap, output_path, alpha=0.4):
     img = load_img(img_path)
