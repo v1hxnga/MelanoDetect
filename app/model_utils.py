@@ -4,12 +4,17 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import load_img, img_to_array
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "..", "models", "ham10000_efficientnetb0_focal.keras")
+MODEL_PATH = os.path.join(
+    BASE_DIR,
+    "..",
+    "models",
+    "ham10000_efficientnetb0_big260_ft10.keras"
+)
 
-THRESHOLD = 0.45
-IMG_SIZE = (224, 224)
+THRESHOLD = 0.50
+IMG_SIZE = (260, 260)
 
-# compile=False is enough for prediction only
+# compile=False is enough for prediction/inference
 model = load_model(MODEL_PATH, compile=False)
 
 

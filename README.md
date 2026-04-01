@@ -25,9 +25,10 @@ This project uses the HAM10000 dataset and transfer learning with EfficientNetB0
 The project uses the HAM10000 dataset. The dataset is not included in this repository because of file size limitations.
 
 ## Best Model
-- Model: EfficientNetB0 fine-tuned (ft10)
-- Best test accuracy: 84.5%
-- Recommended threshold: 0.35
+## Best Model
+- Model: EfficientNetB0 fine-tuned with 260×260 input
+- Highest test accuracy: 85.7%
+- Final threshold: 0.50
 
 ## Repository Structure
 - `app/` - Flask application
