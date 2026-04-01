@@ -1,15 +1,58 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>MelanoDetect</title>
-</head>
-<body>
-    <h1>MelanoDetect</h1>
-    <p>AI-Powered Early Skin Cancer Detection Support System</p>
+{% extends "base.html" %}
 
-    <form action="/predict" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".jpg,.jpeg,.png" required>
-        <button type="submit">Upload and Predict</button>
-    </form>
-</body>
-</html>
+{% block content %}
+<section class="hero">
+  <div class="container">
+    <div class="page-title">
+      <h1>Upload Skin Lesion Image</h1>
+      <p>AI-powered skin lesion classification with Grad-CAM explainability</p>
+    </div>
+
+    <div class="alert warning">
+      <strong>Medical Disclaimer:</strong>
+      This AI tool is for educational and research purposes only and is not a diagnosis tool.
+      Always consult a qualified dermatologist.
+    </div>
+
+    <div class="grid two-col">
+      <div class="card">
+        <h2>Upload Image</h2>
+
+        <form action="{{ url_for('predict') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+          <label for="fileInput" class="upload-box" id="uploadBox">
+            <div class="upload-content">
+              <div class="upload-icon">⬆</div>
+              <p class="upload-main">Drag & Drop Image</p>
+              <p class="upload-sub">or click to browse</p>
+              <p class="upload-small">PNG, JPG, JPEG</p>
+            </div>
+            <input type="file" name="file" id="fileInput" accept=".png,.jpg,.jpeg" required hidden>
+          </label>
+
+          <div id="previewWrapper" class="preview-wrapper hidden">
+            <img id="imagePreview" class="preview-image" alt="Preview">
+            <p id="fileName" class="file-name"></p>
+          </div>
+
+          <button type="submit" class="btn primary full">Analyze Image</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Image Guidelines</h2>
+        <ul class="guidelines">
+          <li>Use clear lighting</li>
+          <li>Keep the lesion in focus</li>
+          <li>Capture a close-up image</li>
+          <li>Avoid glare and shadows</li>
+          <li>Do not apply filters</li>
+        </ul>
+
+        <div class="alert info">
+          Better image quality can improve model prediction reliability.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

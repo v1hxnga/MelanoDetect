@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+  <a href="{{ url_for('results_page') }}" class="text-cyan-300 hover:text-white">← Back to Results</a>
+
+  <h1 class="text-4xl font-bold mt-4 mb-2">AI Explanation - Grad-CAM</h1>
+  <p class="text-gray-300 mb-6">Visual explanation of what the AI focused on</p>
+
+  <div class="flex gap-3 mb-6">
+    <button onclick="showView('simple')" id="simpleBtn"
+            class="px-4 py-2 rounded-lg bg-cyan-500 text-white font-semibold">
+      Simple View
+    </button>
+    <button onclick="showView('advanced')" id="advancedBtn"
+            class="px-4 py-2 rounded-lg bg-white/10 text-gray-200 font-semibold">
+      Advanced View
+    </button>
+  </div>
+
+  <div id="simpleView">
+    <div class="bg-cyan-500/10 border border-cyan-400/30 p-4 rounded-xl mb-6">
+      <p class="text-sm text-cyan-100">
+        <strong>What is this?</strong> The colored heatmap shows which parts of your image were most important to the AI when making its prediction.
+        Red and warm colors indicate areas the AI focused on most.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-2xl">
+        <h2 class="text-xl font-bold mb-4">Original Image</h2>
+        <img src="{{ url_for('static', filename=result.uploaded_image) }}" class="rounded-xl w-full max-h-96 object-contain" alt="Original image">
+      </div>
+
+      <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-2xl">
+        <h2 class="text-xl font-bold mb-4">AI Focus Areas (Grad-CAM)</h2>
+        <img src="{{ url_for('static', filename=result.gradcam_image) }}" class="rounded-xl w-full max-h-96 object-contain" alt="GradCAM image">
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      <div class="bg-white/5 border border-white/10 rounded-xl p-4">🔴 <strong>Red Areas</strong><br><span class="text-gray-300 text-sm">Highest importance</span></div>
+      <div class="bg-white/5 border border-white/10 rounded-xl p-4">🟠 <strong>Yellow/Orange</strong><br><span class="text-gray-300 text-sm">Moderate importance</span></div>
+      <div class="bg-white/5 border border-white/10 rounded-xl p-4">🔵 <strong>Blue/Cool</strong><br><span class="text-gray-300 text-sm">Lower importance</span></div>
+    </div>
+
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-5 mt-6">
+      <h3 class="text-xl font-bold mb-3">Key Findings</h3>
+      <ul class="space-y-2 text-gray-200">
+        <li>• The AI focused on the lesion region highlighted in the Grad-CAM map.</li>
+        <li>• The explanation supports how the model reached its final decision.</li>
+        <li>• This visual output is for interpretability and not a final medical diagnosis.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="advancedView" class="hidden">
+    <div class="bg-purple-500/10 border border-purple-400/30 p-4 rounded-xl mb-6">
+      <p class="text-sm text-purple-100">
+        <strong>Technical Details - Grad-CAM:</strong>
+        This page provides more model-related details for the generated explanation.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-2xl">
+        <h2 class="text-xl font-bold mb-4">Original Image (Preprocessed)</h2>
+        <img src="{{ url_for('static', filename=result.uploaded_image) }}" class="rounded-xl w-full max-h-96 object-contain" alt="Original image">
+        <p class="text-gray-400 text-sm mt-3">Input size: 260 x 260 | Final model input</p>
+      </div>
+
+      <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-2xl">
+        <h2 class="text-xl font-bold mb-4">Grad-CAM Activation Map</h2>
+        <img src="{{ url_for('static', filename=result.gradcam_image) }}" class="rounded-xl w-full max-h-96 object-contain" alt="GradCAM image">
+        <p class="text-gray-400 text-sm mt-3">Last conv layer: {{ result.last_conv_layer }}</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+        <div class="text-gray-400 text-sm">Model</div>
+        <div class="text-2xl font-bold">EfficientNetB0</div>
+      </div>
+      <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+        <div class="text-gray-400 text-sm">Threshold</div>
+        <div class="text-2xl font-bold">0.50</div>
+      </div>
+      <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+        <div class="text-gray-400 text-sm">Final Accuracy</div>
+        <div class="text-2xl font-bold">85.7%</div>
+      </div>
+    </div>
+
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-5 mt-6">
+      <h3 class="text-xl font-bold mb-3">Interpretation Notes</h3>
+      <ul class="space-y-2 text-gray-200">
+        <li>• Grad-CAM highlights the most influential visual regions for the prediction.</li>
+        <li>• The model uses lesion texture, shape variation, and local color intensity as learned features.</li>
+        <li>• This explanation is supportive only and does not replace expert dermatological assessment.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showView(view) {
+  const simpleView = document.getElementById("simpleView");
+  const advancedView = document.getElementById("advancedView");
+  const simpleBtn = document.getElementById("simpleBtn");
+  const advancedBtn = document.getElementById("advancedBtn");
+
+  if (view === "simple") {
+    simpleView.classList.remove("hidden");
+    advancedView.classList.add("hidden");
+    simpleBtn.className = "px-4 py-2 rounded-lg bg-cyan-500 text-white font-semibold";
+    advancedBtn.className = "px-4 py-2 rounded-lg bg-white/10 text-gray-200 font-semibold";
+  } else {
+    advancedView.classList.remove("hidden");
+    simpleView.classList.add("hidden");
+    advancedBtn.className = "px-4 py-2 rounded-lg bg-cyan-500 text-white font-semibold";
+    simpleBtn.className = "px-4 py-2 rounded-lg bg-white/10 text-gray-200 font-semibold";
+  }
+}
+</script>
+{% endblock %}

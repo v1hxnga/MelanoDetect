@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+  <h1 class="text-4xl font-bold mb-2">Admin Dashboard</h1>
+  <p class="text-gray-300 mb-8">Model Performance & Analytics</p>
+
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+      <div class="text-gray-400 text-sm">Accuracy</div>
+      <div class="text-2xl font-bold text-green-400">{{ metrics.accuracy }}</div>
+    </div>
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+      <div class="text-gray-400 text-sm">Precision</div>
+      <div class="text-2xl font-bold text-cyan-400">{{ metrics.precision_malignant }}</div>
+    </div>
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+      <div class="text-gray-400 text-sm">Recall</div>
+      <div class="text-2xl font-bold text-purple-400">{{ metrics.recall_malignant }}</div>
+    </div>
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+      <div class="text-gray-400 text-sm">F1 Score</div>
+      <div class="text-2xl font-bold text-orange-400">{{ metrics.f1_malignant }}</div>
+    </div>
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+      <div class="text-gray-400 text-sm">Threshold</div>
+      <div class="text-2xl font-bold text-yellow-300">{{ metrics.threshold }}</div>
+    </div>
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+      <div class="text-gray-400 text-sm">Model</div>
+      <div class="text-lg font-bold text-pink-300">{{ metrics.model_name }}</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+      <h2 class="text-2xl font-bold mb-4">Dataset Summary</h2>
+      <div class="space-y-3 text-gray-200">
+        <p><strong>Training Samples:</strong> {{ metrics.train_samples }}</p>
+        <p><strong>Validation Samples:</strong> {{ metrics.validation_samples }}</p>
+        <p><strong>Test Samples:</strong> {{ metrics.test_samples }}</p>
+        <p><strong>Input Size:</strong> {{ metrics.input_size }}</p>
+      </div>
+    </div>
+
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+      <h2 class="text-2xl font-bold mb-4">Training Details</h2>
+      <div class="space-y-3 text-gray-200">
+        <p><strong>Optimizer:</strong> {{ metrics.optimizer }}</p>
+        <p><strong>Loss Function:</strong> {{ metrics.loss_function }}</p>
+        <p><strong>Epochs:</strong> {{ metrics.epochs }}</p>
+        <p><strong>Selected Goal:</strong> Highest Accuracy</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mt-6">
+    <h2 class="text-2xl font-bold mb-4">Final Selected Model</h2>
+    <p class="text-gray-200 leading-7">
+      The current deployed model is the fine-tuned EfficientNetB0 model trained with 260×260 input images.
+      This model achieved the highest test accuracy of <strong>{{ metrics.accuracy }}</strong> using a threshold of
+      <strong>{{ metrics.threshold }}</strong>.
+    </p>
+  </div>
+</div>
+{% endblock %}

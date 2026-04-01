@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+  <h1 class="text-5xl font-bold mb-2">Upload Skin Lesion Image</h1>
+  <p class="text-gray-300 mb-8">Upload a clear image for AI-powered analysis</p>
+
+  <div class="bg-yellow-500/10 border border-yellow-400/50 p-4 rounded-xl mb-6 flex gap-3">
+    <span class="text-yellow-300">⚠️</span>
+    <p class="text-sm text-yellow-100">
+      <strong>Medical Disclaimer:</strong> This AI tool is for educational purposes only and is NOT a substitute for professional medical diagnosis.
+      Always consult a qualified dermatologist for medical advice.
+    </p>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-2xl">
+      <h2 class="text-2xl font-bold mb-4">Upload Image</h2>
+
+      <form action="{{ url_for('predict') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+        <label for="fileInput" class="block border-2 border-dashed border-white/20 rounded-2xl p-8 text-center cursor-pointer hover:border-cyan-400 transition">
+          <div class="text-5xl mb-4">⬆</div>
+          <p class="text-2xl font-semibold">Drag & Drop Image</p>
+          <p class="text-gray-300">or click to browse</p>
+          <p class="text-gray-400 text-sm">PNG, JPG, JPEG</p>
+          <input type="file" name="file" id="fileInput" accept=".png,.jpg,.jpeg" hidden required>
+        </label>
+
+        <div id="previewBox" class="mt-4 hidden text-center">
+          <img id="previewImage" class="mx-auto rounded-xl max-h-64 border border-white/10" alt="Preview">
+          <p id="previewName" class="text-gray-300 mt-2"></p>
+          <button type="button" onclick="clearImage()" class="text-red-400 mt-2">Remove Image</button>
+        </div>
+
+        <button id="analyzeBtn"
+                class="w-full mt-6 bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-3 rounded-lg font-semibold">
+          Analyze Image
+        </button>
+      </form>
+    </div>
+
+    <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-2xl shadow-2xl">
+      <h2 class="text-2xl font-bold mb-4">Image Guidelines</h2>
+
+      <ul class="space-y-4 text-gray-200">
+        <li>✅ <strong>Good Lighting</strong><br><span class="text-gray-400 text-sm">Use natural or bright artificial light</span></li>
+        <li>✅ <strong>Clear Focus</strong><br><span class="text-gray-400 text-sm">Ensure the lesion is in sharp focus</span></li>
+        <li>✅ <strong>Close-Up Shot</strong><br><span class="text-gray-400 text-sm">Fill the frame with the skin lesion</span></li>
+        <li>✅ <strong>Minimal Glare</strong><br><span class="text-gray-400 text-sm">Avoid reflections or shadows</span></li>
+        <li>✅ <strong>No Filters</strong><br><span class="text-gray-400 text-sm">Use original, unedited photos</span></li>
+      </ul>
+
+      <div class="mt-6 bg-cyan-500/10 border border-cyan-400/40 p-4 rounded-xl text-cyan-100">
+        <strong>Tip:</strong> Better image quality leads to more accurate AI predictions.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const fileInput = document.getElementById("fileInput");
+const previewBox = document.getElementById("previewBox");
+const previewImage = document.getElementById("previewImage");
+const previewName = document.getElementById("previewName");
+
+fileInput.addEventListener("change", function () {
+  const file = this.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    previewImage.src = e.target.result;
+    previewName.textContent = file.name;
+    previewBox.classList.remove("hidden");
+  };
+  reader.readAsDataURL(file);
+});
+
+function clearImage() {
+  fileInput.value = "";
+  previewImage.src = "";
+  previewName.textContent = "";
+  previewBox.classList.add("hidden");
+}
+</script>
+{% endblock %}
