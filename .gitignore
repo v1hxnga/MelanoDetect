@@ -30,3 +30,6 @@ results/temp/
 
 # Logs
 *.log
+
+#database
+*.db
