@@ -1,9 +1,10 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.utils import secure_filename
 
 from model_utils import predict_image
 from gradcam_utils import build_gradcam_model, make_gradcam_heatmap, save_gradcam_overlay
+from db_utils import init_db, create_doctor, authenticate_user
 
 app = Flask(__name__)
 app.secret_key = "melanodetect-secret-key-change-this"
@@ -20,6 +21,9 @@ os.makedirs(GRADCAM_FOLDER, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
+# initialize database on startup
+init_db()
+
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -30,18 +34,60 @@ def logged_in():
 
 
 @app.route("/")
+def home():
+    if logged_in():
+        return redirect(url_for("upload_page"))
+    return redirect(url_for("login_page"))
+
+
+@app.route("/login", methods=["GET", "POST"])
 def login_page():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
+
+        user = authenticate_user(email, password)
+
+        if not user:
+            flash("Invalid email or password.", "error")
+            return redirect(url_for("login_page"))
+
+        session["user_id"] = user["id"]
+        session["user_name"] = user["full_name"]
+        session["user_email"] = user["email"]
+        session["user_role"] = user["role"]
+
+        return redirect(url_for("upload_page"))
+
     return render_template("login.html")
 
 
-@app.route("/login", methods=["POST"])
-def login():
-    role = request.form.get("role", "Patient")
-    email = request.form.get("email", "").strip()
+@app.route("/signup", methods=["GET", "POST"])
+def signup_page():
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
 
-    session["user_role"] = role
-    session["user_email"] = email
-    return redirect(url_for("upload_page"))
+        if not full_name or not email or not password or not confirm_password:
+            flash("Please fill in all fields.", "error")
+            return redirect(url_for("signup_page"))
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return redirect(url_for("signup_page"))
+
+        success, message = create_doctor(full_name, email, password)
+
+        if not success:
+            flash(message, "error")
+            return redirect(url_for("signup_page"))
+
+        flash("Doctor account created successfully. Please log in.", "success")
+        return redirect(url_for("login_page"))
+
+    return render_template("signup.html")
 
 
 @app.route("/logout")
