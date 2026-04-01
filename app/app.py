@@ -48,7 +48,6 @@ def predict():
 
     label, confidence, img_array, model = predict_image(upload_path)
 
-    # Grad-CAM
     feature_extractor, base_model, last_conv_layer_name = build_gradcam_model(model)
     heatmap = make_gradcam_heatmap(img_array, model, feature_extractor, base_model)
 

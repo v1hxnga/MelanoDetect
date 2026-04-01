@@ -18,7 +18,6 @@ def build_gradcam_model(model, base_model_name=BASE_MODEL_NAME):
     last_conv_layer_name = find_last_conv_layer_name(base_model)
     last_conv_layer = base_model.get_layer(last_conv_layer_name)
 
-    # Extract both the last conv output and the base model output
     feature_extractor = tf.keras.Model(
         inputs=base_model.input,
         outputs=[last_conv_layer.output, base_model.output]
@@ -34,9 +33,8 @@ def make_gradcam_heatmap(img_array, model, feature_extractor, base_model):
         conv_outputs, base_output = feature_extractor(img_tensor, training=False)
 
         x = base_output
-
-        # Pass through layers after EfficientNetB0
         passed_base = False
+
         for layer in model.layers:
             if layer.name == base_model.name:
                 passed_base = True
