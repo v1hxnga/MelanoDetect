@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.utils import secure_filename
 
@@ -22,7 +23,6 @@ os.makedirs(GRADCAM_FOLDER, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
-# initialize database on startup
 init_db()
 
 
@@ -37,7 +37,7 @@ def logged_in():
 @app.route("/")
 def home():
     if logged_in():
-        return redirect(url_for("upload_page"))
+        return redirect(url_for("dashboard_page"))
     return redirect(url_for("login_page"))
 
 
@@ -58,9 +58,12 @@ def login_page():
         session["user_email"] = user["email"]
         session["user_role"] = user["role"]
 
-        return redirect(url_for("upload_page"))
+        if "history" not in session:
+            session["history"] = []
 
-    return render_template("login.html")
+        return redirect(url_for("dashboard_page"))
+
+    return render_template("login.html", active_page="login")
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -85,10 +88,17 @@ def signup_page():
             flash(message, "error")
             return redirect(url_for("signup_page"))
 
-        flash("Doctor account created successfully. Please log in.", "success")
-        return redirect(url_for("login_page"))
+        user = authenticate_user(email, password)
+        session["user_id"] = user["id"]
+        session["user_name"] = user["full_name"]
+        session["user_email"] = user["email"]
+        session["user_role"] = user["role"]
+        session["history"] = []
 
-    return render_template("signup.html")
+        flash("Account created successfully. Welcome to MelanoDetect.", "success")
+        return redirect(url_for("dashboard_page"))
+
+    return render_template("signup.html", active_page="signup")
 
 
 @app.route("/logout")
@@ -97,11 +107,43 @@ def logout():
     return redirect(url_for("login_page"))
 
 
+@app.route("/dashboard")
+def dashboard_page():
+    if not logged_in():
+        return redirect(url_for("login_page"))
+
+    history = session.get("history", [])
+    latest_result = session.get("last_result")
+
+    stats = {
+        "total_uploads": len(history),
+        "latest_prediction": latest_result["label"].capitalize() if latest_result else "No result yet",
+        "latest_confidence": f'{latest_result["confidence"]}%' if latest_result else "--",
+        "role": session.get("user_role", "Doctor")
+    }
+
+    return render_template(
+        "dashboard.html",
+        active_page="dashboard",
+        stats=stats,
+        latest_result=latest_result,
+        history=history[:3]
+    )
+
+
+@app.route("/profile")
+def profile_page():
+    if not logged_in():
+        return redirect(url_for("login_page"))
+
+    return render_template("profile.html", active_page="profile")
+
+
 @app.route("/upload")
 def upload_page():
     if not logged_in():
         return redirect(url_for("login_page"))
-    return render_template("upload.html")
+    return render_template("upload.html", active_page="upload")
 
 
 @app.route("/predict", methods=["POST"])
@@ -127,11 +169,9 @@ def predict():
     upload_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(upload_path)
 
-    # STEP 1: Validate whether the uploaded image is really a lesion image
     is_valid, valid_score = validate_lesion_image(upload_path)
 
     if not is_valid:
-        # optional: remove invalid upload file
         if os.path.exists(upload_path):
             os.remove(upload_path)
 
@@ -141,7 +181,6 @@ def predict():
         )
         return redirect(url_for("upload_page"))
 
-    # STEP 2: Only valid lesion images go to the main classifier
     label, confidence, img_array, model = predict_image(upload_path)
 
     feature_extractor, base_model, last_conv_layer_name = build_gradcam_model(model)
@@ -180,7 +219,7 @@ def predict():
             "Use this result only as screening support."
         ]
 
-    session["last_result"] = {
+    result = {
         "label": label,
         "confidence": confidence_pct,
         "benign_pct": benign_pct,
@@ -191,8 +230,21 @@ def predict():
         "explanation": explanation,
         "next_steps": next_steps,
         "last_conv_layer": last_conv_layer_name,
-        "validator_score": round(valid_score, 2)
+        "validator_score": round(valid_score, 2),
+        "filename": filename,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M")
     }
+
+    session["last_result"] = result
+
+    history = session.get("history", [])
+    history.insert(0, {
+        "filename": filename,
+        "label": label.capitalize(),
+        "confidence": f"{confidence_pct}%",
+        "timestamp": result["timestamp"]
+    })
+    session["history"] = history[:10]
 
     return redirect(url_for("results_page"))
 
@@ -204,9 +256,10 @@ def results_page():
 
     result = session.get("last_result")
     if not result:
+        flash("No analysis result available yet. Upload an image first.", "error")
         return redirect(url_for("upload_page"))
 
-    return render_template("result.html", result=result)
+    return render_template("result.html", result=result, active_page="results")
 
 
 @app.route("/gradcam")
@@ -216,9 +269,19 @@ def gradcam_page():
 
     result = session.get("last_result")
     if not result:
+        flash("No Grad-CAM result available yet. Upload an image first.", "error")
         return redirect(url_for("upload_page"))
 
-    return render_template("gradcam.html", result=result)
+    return render_template("gradcam.html", result=result, active_page="results")
+
+
+@app.route("/history")
+def history_page():
+    if not logged_in():
+        return redirect(url_for("login_page"))
+
+    history = session.get("history", [])
+    return render_template("history.html", history=history, active_page="history")
 
 
 @app.route("/admin")
@@ -227,25 +290,9 @@ def admin_page():
         return redirect(url_for("login_page"))
 
     if session.get("user_role") != "Admin":
-        return redirect(url_for("upload_page"))
+        return redirect(url_for("dashboard_page"))
 
-    metrics = {
-        "accuracy": "85.7%",
-        "precision_malignant": "69.1%",
-        "recall_malignant": "48.1%",
-        "f1_malignant": "56.7%",
-        "threshold": "0.50",
-        "model_name": "EfficientNetB0 Big260 Fine-Tuned",
-        "train_samples": "7010",
-        "validation_samples": "1502",
-        "test_samples": "1503",
-        "input_size": "260 x 260",
-        "optimizer": "Adam",
-        "epochs": "Stage 1 + Stage 2",
-        "loss_function": "Binary Focal Loss"
-    }
-
-    return render_template("admin.html", metrics=metrics)
+    return redirect(url_for("dashboard_page"))
 
 
 if __name__ == "__main__":

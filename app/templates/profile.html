@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-top">
+  <div>
+    <div class="hero-pill">Profile Overview</div>
+    <h1>Profile</h1>
+    <p class="muted">Professional account information and access overview.</p>
+  </div>
+</section>
+
+<section class="card-grid two">
+  <div class="section-card tilt-card">
+    <h3>Account Information</h3>
+    <div class="profile-list">
+      <div><span>Full Name</span><strong>{{ session.get("user_name") }}</strong></div>
+      <div><span>Email</span><strong>{{ session.get("user_email") }}</strong></div>
+      <div><span>Role</span><strong>{{ session.get("user_role") }}</strong></div>
+    </div>
+  </div>
+
+  <div class="section-card tilt-card">
+    <h3>System Access</h3>
+    <ul class="feature-list">
+      <li>Upload lesion images for screening</li>
+      <li>Review model predictions and confidence</li>
+      <li>Open Grad-CAM explanation page</li>
+      <li>Track recent activity in History</li>
+    </ul>
+  </div>
+</section>
+{% endblock %}

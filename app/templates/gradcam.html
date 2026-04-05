@@ -1,124 +1,199 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div>
-  <a href="{{ url_for('results_page') }}" class="text-cyan-300 hover:text-white">← Back to Results</a>
-
-  <h1 class="text-4xl font-bold mt-4 mb-2">AI Explanation - Grad-CAM</h1>
-  <p class="text-gray-300 mb-6">Visual explanation of what the AI focused on</p>
-
-  <div class="flex gap-3 mb-6">
-    <button onclick="showView('simple')" id="simpleBtn"
-            class="px-4 py-2 rounded-lg bg-cyan-500 text-white font-semibold">
-      Simple View
-    </button>
-    <button onclick="showView('advanced')" id="advancedBtn"
-            class="px-4 py-2 rounded-lg bg-white/10 text-gray-200 font-semibold">
-      Advanced View
-    </button>
+<section class="page-top">
+  <div>
+    <div class="hero-pill">AI Visual Explanation</div>
+    <h1>Grad-CAM Analysis</h1>
+    <p class="muted">
+      Understand which regions of the lesion image influenced the AI model’s prediction.
+    </p>
   </div>
 
-  <div id="simpleView">
-    <div class="bg-cyan-500/10 border border-cyan-400/30 p-4 rounded-xl mb-6">
-      <p class="text-sm text-cyan-100">
-        <strong>What is this?</strong> The colored heatmap shows which parts of your image were most important to the AI when making its prediction.
-        Red and warm colors indicate areas the AI focused on most.
+  <div class="button-row">
+    <a href="{{ url_for('results_page') }}" class="btn btn-secondary">← Back to Results</a>
+  </div>
+</section>
+
+<section class="section-card gradcam-hero-card">
+  <div class="gradcam-hero-top">
+    <div>
+      <h3>Explanation Overview</h3>
+      <p class="muted">
+        Grad-CAM highlights the most important areas used by the model when predicting
+        whether the lesion is benign or malignant.
       </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-2xl">
-        <h2 class="text-xl font-bold mb-4">Original Image</h2>
-        <img src="{{ url_for('static', filename=result.uploaded_image) }}" class="rounded-xl w-full max-h-96 object-contain" alt="Original image">
-      </div>
-
-      <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-2xl">
-        <h2 class="text-xl font-bold mb-4">AI Focus Areas (Grad-CAM)</h2>
-        <img src="{{ url_for('static', filename=result.gradcam_image) }}" class="rounded-xl w-full max-h-96 object-contain" alt="GradCAM image">
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-      <div class="bg-white/5 border border-white/10 rounded-xl p-4">🔴 <strong>Red Areas</strong><br><span class="text-gray-300 text-sm">Highest importance</span></div>
-      <div class="bg-white/5 border border-white/10 rounded-xl p-4">🟠 <strong>Yellow/Orange</strong><br><span class="text-gray-300 text-sm">Moderate importance</span></div>
-      <div class="bg-white/5 border border-white/10 rounded-xl p-4">🔵 <strong>Blue/Cool</strong><br><span class="text-gray-300 text-sm">Lower importance</span></div>
-    </div>
-
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-5 mt-6">
-      <h3 class="text-xl font-bold mb-3">Key Findings</h3>
-      <ul class="space-y-2 text-gray-200">
-        <li>• The AI focused on the lesion region highlighted in the Grad-CAM map.</li>
-        <li>• The explanation supports how the model reached its final decision.</li>
-        <li>• This visual output is for interpretability and not a final medical diagnosis.</li>
-      </ul>
+    <div class="badge-row">
+      <span class="result-badge {% if result.label == 'malignant' %}badge-danger{% else %}badge-safe{% endif %}">
+        {{ result.label|capitalize }}
+      </span>
+      <span class="soft-chip">Confidence: {{ result.confidence }}%</span>
+      <span class="soft-chip">Validator: {{ result.validator_score }}</span>
     </div>
   </div>
 
-  <div id="advancedView" class="hidden">
-    <div class="bg-purple-500/10 border border-purple-400/30 p-4 rounded-xl mb-6">
-      <p class="text-sm text-purple-100">
-        <strong>Technical Details - Grad-CAM:</strong>
-        This page provides more model-related details for the generated explanation.
-      </p>
+  <div class="tab-switch">
+    <button class="tab-btn active" id="simpleBtn" onclick="showGradcamView('simple')">Simple View</button>
+    <button class="tab-btn" id="advancedBtn" onclick="showGradcamView('advanced')">Advanced View</button>
+  </div>
+</section>
+
+<div id="simpleView">
+  <section class="card-grid two">
+    <div class="section-card image-panel tilt-card">
+      <div class="panel-head">
+        <h3>Original Lesion Image</h3>
+        <p class="muted">Uploaded image used for prediction</p>
+      </div>
+      <img src="{{ url_for('static', filename=result.uploaded_image) }}" alt="Original image" class="result-image">
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-2xl">
-        <h2 class="text-xl font-bold mb-4">Original Image (Preprocessed)</h2>
-        <img src="{{ url_for('static', filename=result.uploaded_image) }}" class="rounded-xl w-full max-h-96 object-contain" alt="Original image">
-        <p class="text-gray-400 text-sm mt-3">Input size: 260 x 260 | Final model input</p>
+    <div class="section-card image-panel tilt-card">
+      <div class="panel-head">
+        <h3>Grad-CAM Heatmap</h3>
+        <p class="muted">Highlighted focus areas used by the model</p>
       </div>
-
-      <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-5 rounded-2xl">
-        <h2 class="text-xl font-bold mb-4">Grad-CAM Activation Map</h2>
-        <img src="{{ url_for('static', filename=result.gradcam_image) }}" class="rounded-xl w-full max-h-96 object-contain" alt="GradCAM image">
-        <p class="text-gray-400 text-sm mt-3">Last conv layer: {{ result.last_conv_layer }}</p>
-      </div>
+      <img src="{{ url_for('static', filename=result.gradcam_image) }}" alt="Grad-CAM image" class="result-image">
     </div>
+  </section>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-      <div class="bg-white/5 border border-white/10 rounded-xl p-4">
-        <div class="text-gray-400 text-sm">Model</div>
-        <div class="text-2xl font-bold">EfficientNetB0</div>
-      </div>
-      <div class="bg-white/5 border border-white/10 rounded-xl p-4">
-        <div class="text-gray-400 text-sm">Threshold</div>
-        <div class="text-2xl font-bold">0.50</div>
-      </div>
-      <div class="bg-white/5 border border-white/10 rounded-xl p-4">
-        <div class="text-gray-400 text-sm">Final Accuracy</div>
-        <div class="text-2xl font-bold">85.7%</div>
+  <section class="card-grid three">
+    <div class="section-card legend-card legend-red">
+      <div class="legend-dot red"></div>
+      <div>
+        <strong>Red Areas</strong>
+        <p>Highest importance in the final prediction.</p>
       </div>
     </div>
 
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-5 mt-6">
-      <h3 class="text-xl font-bold mb-3">Interpretation Notes</h3>
-      <ul class="space-y-2 text-gray-200">
-        <li>• Grad-CAM highlights the most influential visual regions for the prediction.</li>
-        <li>• The model uses lesion texture, shape variation, and local color intensity as learned features.</li>
-        <li>• This explanation is supportive only and does not replace expert dermatological assessment.</li>
+    <div class="section-card legend-card legend-orange">
+      <div class="legend-dot orange"></div>
+      <div>
+        <strong>Orange / Yellow</strong>
+        <p>Moderate influence on the model’s decision.</p>
+      </div>
+    </div>
+
+    <div class="section-card legend-card legend-blue">
+      <div class="legend-dot blue"></div>
+      <div>
+        <strong>Blue / Cool Areas</strong>
+        <p>Lower importance for the classification output.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card-grid two">
+    <div class="section-card">
+      <h3>Key Findings</h3>
+      <ul class="feature-list">
+        <li>The AI focused on the lesion region highlighted in the Grad-CAM map.</li>
+        <li>The highlighted zones help explain how the model reached its prediction.</li>
+        <li>This visual explanation improves transparency, but it is not a final diagnosis.</li>
       </ul>
     </div>
-  </div>
+
+    <div class="section-card">
+      <h3>Clinical Interpretation Note</h3>
+      <div class="info-box">
+        Grad-CAM should be used as an interpretability aid only. It does not replace expert dermatological review,
+        biopsy, or laboratory confirmation.
+      </div>
+
+      <div class="mini-metrics">
+        <div class="metric-box">
+          <span>Prediction</span>
+          <strong>{{ result.label|capitalize }}</strong>
+        </div>
+        <div class="metric-box">
+          <span>Confidence</span>
+          <strong>{{ result.confidence }}%</strong>
+        </div>
+        <div class="metric-box">
+          <span>Risk Badge</span>
+          <strong>{{ result.risk_badge }}</strong>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="advancedView" class="hidden-panel">
+  <section class="card-grid two">
+    <div class="section-card image-panel tilt-card">
+      <div class="panel-head">
+        <h3>Original Input</h3>
+        <p class="muted">Preprocessed lesion input image</p>
+      </div>
+      <img src="{{ url_for('static', filename=result.uploaded_image) }}" alt="Original image" class="result-image">
+    </div>
+
+    <div class="section-card image-panel tilt-card">
+      <div class="panel-head">
+        <h3>Activation Overlay</h3>
+        <p class="muted">Grad-CAM focus visualization</p>
+      </div>
+      <img src="{{ url_for('static', filename=result.gradcam_image) }}" alt="Grad-CAM image" class="result-image">
+    </div>
+  </section>
+
+  <section class="card-grid three">
+    <div class="section-card metric-card">
+      <span>Model</span>
+      <strong>EfficientNetB0</strong>
+    </div>
+    <div class="section-card metric-card">
+      <span>Input Size</span>
+      <strong>260 × 260</strong>
+    </div>
+    <div class="section-card metric-card">
+      <span>Threshold</span>
+      <strong>0.50</strong>
+    </div>
+    <div class="section-card metric-card">
+      <span>Last Conv Layer</span>
+      <strong>{{ result.last_conv_layer }}</strong>
+    </div>
+    <div class="section-card metric-card">
+      <span>Validator Score</span>
+      <strong>{{ result.validator_score }}</strong>
+    </div>
+    <div class="section-card metric-card">
+      <span>Final Accuracy</span>
+      <strong>85.7%</strong>
+    </div>
+  </section>
+
+  <section class="section-card">
+    <h3>Advanced Interpretation Notes</h3>
+    <ul class="feature-list">
+      <li>Grad-CAM extracts the most relevant spatial activation regions from the selected convolutional layer.</li>
+      <li>The heatmap shows the local structures the model considered important for classification.</li>
+      <li>The result supports explainability, especially for lesion pattern and texture analysis.</li>
+      <li>Even with visual explanation, clinical validation is still essential.</li>
+    </ul>
+  </section>
 </div>
 
 <script>
-function showView(view) {
+function showGradcamView(view) {
   const simpleView = document.getElementById("simpleView");
   const advancedView = document.getElementById("advancedView");
   const simpleBtn = document.getElementById("simpleBtn");
   const advancedBtn = document.getElementById("advancedBtn");
 
   if (view === "simple") {
-    simpleView.classList.remove("hidden");
-    advancedView.classList.add("hidden");
-    simpleBtn.className = "px-4 py-2 rounded-lg bg-cyan-500 text-white font-semibold";
-    advancedBtn.className = "px-4 py-2 rounded-lg bg-white/10 text-gray-200 font-semibold";
+    simpleView.classList.remove("hidden-panel");
+    advancedView.classList.add("hidden-panel");
+    simpleBtn.classList.add("active");
+    advancedBtn.classList.remove("active");
   } else {
-    advancedView.classList.remove("hidden");
-    simpleView.classList.add("hidden");
-    advancedBtn.className = "px-4 py-2 rounded-lg bg-cyan-500 text-white font-semibold";
-    simpleBtn.className = "px-4 py-2 rounded-lg bg-white/10 text-gray-200 font-semibold";
+    advancedView.classList.remove("hidden-panel");
+    simpleView.classList.add("hidden-panel");
+    advancedBtn.classList.add("active");
+    simpleBtn.classList.remove("active");
   }
 }
 </script>
