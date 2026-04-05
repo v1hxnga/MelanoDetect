@@ -33,3 +33,19 @@ results/temp/
 
 #database
 *.db
+
+# Validator datasets
+data/input_validator_raw/
+data/input_validator_split/
+
+# Uploaded/generated files
+app/static/uploads/
+app/static/gradcam/
+
+# Local database
+app/melanodetect.db
+*.db
+
+# Python / notebook junk
+__pycache__/
+.ipynb_checkpoints/

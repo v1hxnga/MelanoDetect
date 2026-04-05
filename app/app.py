@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 from model_utils import predict_image
 from gradcam_utils import build_gradcam_model, make_gradcam_heatmap, save_gradcam_overlay
 from db_utils import init_db, create_doctor, authenticate_user
+from validator_utils import validate_lesion_image
 
 app = Flask(__name__)
 app.secret_key = "melanodetect-secret-key-change-this"
@@ -109,20 +110,38 @@ def predict():
         return redirect(url_for("login_page"))
 
     if "file" not in request.files:
+        flash("No file uploaded.", "error")
         return redirect(url_for("upload_page"))
 
     file = request.files["file"]
 
     if file.filename == "":
+        flash("No file selected.", "error")
         return redirect(url_for("upload_page"))
 
     if not (file and allowed_file(file.filename)):
+        flash("Invalid file format. Please upload JPG, JPEG, or PNG.", "error")
         return redirect(url_for("upload_page"))
 
     filename = secure_filename(file.filename)
     upload_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(upload_path)
 
+    # STEP 1: Validate whether the uploaded image is really a lesion image
+    is_valid, valid_score = validate_lesion_image(upload_path)
+
+    if not is_valid:
+        # optional: remove invalid upload file
+        if os.path.exists(upload_path):
+            os.remove(upload_path)
+
+        flash(
+            f"Unsupported image. Please upload a clear skin-lesion or dermoscopic image. Validator score: {valid_score:.2f}",
+            "error"
+        )
+        return redirect(url_for("upload_page"))
+
+    # STEP 2: Only valid lesion images go to the main classifier
     label, confidence, img_array, model = predict_image(upload_path)
 
     feature_extractor, base_model, last_conv_layer_name = build_gradcam_model(model)
@@ -171,7 +190,8 @@ def predict():
         "gradcam_image": f"gradcam/{gradcam_filename}",
         "explanation": explanation,
         "next_steps": next_steps,
-        "last_conv_layer": last_conv_layer_name
+        "last_conv_layer": last_conv_layer_name,
+        "validator_score": round(valid_score, 2)
     }
 
     return redirect(url_for("results_page"))

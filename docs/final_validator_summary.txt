@@ -1,0 +1,10 @@
+
+FINAL VALIDATOR + CLASSIFIER SUMMARY
+------------------------------------
+Validator model: lesion_input_validator.keras
+Validator threshold: 0.80
+Purpose: Reject random / unsupported images before classification
+
+Final classifier: ham10000_efficientnetb0_big260_ft10.keras
+Classifier threshold: 0.50
+Highest accuracy: 85.7%
