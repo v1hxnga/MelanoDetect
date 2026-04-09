@@ -1,27 +1,129 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+  .profile-hero {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-bottom: 26px;
+  }
+
+  .profile-avatar {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    border-radius: 20px;
+    background: #ffffff;
+    padding: 10px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .profile-card {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+  }
+
+  .profile-card h3 {
+    margin-top: 0;
+    margin-bottom: 24px;
+    font-size: 2rem;
+    color: #13233d;
+  }
+
+  .profile-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 0;
+    border-bottom: 1px solid #d8e0eb;
+    gap: 20px;
+  }
+
+  .profile-row:last-child {
+    border-bottom: none;
+  }
+
+  .profile-label {
+    color: #5f738d;
+    font-size: 1.05rem;
+  }
+
+  .profile-value {
+    color: #13233d;
+    font-weight: 700;
+    font-size: 1.05rem;
+    text-align: right;
+  }
+
+  .system-list {
+    margin: 0;
+    padding-left: 24px;
+    color: #334a68;
+    line-height: 2;
+    font-size: 1.05rem;
+  }
+
+  @media (max-width: 900px) {
+    .profile-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .profile-hero {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
+
 <section class="page-top">
-  <div>
-    <div class="hero-pill">Profile Overview</div>
-    <h1>Profile</h1>
-    <p class="muted">Professional account information and access overview.</p>
+  <div class="profile-hero">
+    <img src="{{ url_for('static', filename=doctor_image) }}" alt="Doctor profile image" class="profile-avatar">
+
+    <div>
+      <div class="hero-pill">Profile Overview</div>
+      <h1>Profile</h1>
+      <p class="muted">Professional account information and access overview.</p>
+    </div>
   </div>
 </section>
 
-<section class="card-grid two">
-  <div class="section-card tilt-card">
+<section class="profile-grid">
+  <div class="profile-card">
     <h3>Account Information</h3>
-    <div class="profile-list">
-      <div><span>Full Name</span><strong>{{ session.get("user_name") }}</strong></div>
-      <div><span>Email</span><strong>{{ session.get("user_email") }}</strong></div>
-      <div><span>Role</span><strong>{{ session.get("user_role") }}</strong></div>
+
+    <div class="profile-row">
+      <div class="profile-label">Full Name</div>
+      <div class="profile-value">{{ session['user_name'] }}</div>
+    </div>
+
+    <div class="profile-row">
+      <div class="profile-label">Email</div>
+      <div class="profile-value">{{ session['user_email'] }}</div>
+    </div>
+
+    <div class="profile-row">
+      <div class="profile-label">Role</div>
+      <div class="profile-value">{{ session['user_role'] }}</div>
+    </div>
+
+    <div class="profile-row">
+      <div class="profile-label">Gender</div>
+      <div class="profile-value">{{ session['user_gender']|capitalize }}</div>
     </div>
   </div>
 
-  <div class="section-card tilt-card">
+  <div class="profile-card">
     <h3>System Access</h3>
-    <ul class="feature-list">
+    <ul class="system-list">
       <li>Upload lesion images for screening</li>
       <li>Review model predictions and confidence</li>
       <li>Open Grad-CAM explanation page</li>

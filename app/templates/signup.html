@@ -1,51 +1,495 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="auth-layout">
-  <div class="auth-hero">
-    <div class="hero-badge">Professional doctor onboarding</div>
-    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MelanoDetect Logo" class="auth-logo-large">
-    <h1>Create your <span>Doctor Account</span></h1>
-    <p>
-      Register once and access your professional dashboard, upload lesion images,
-      review results, and track analysis history.
-    </p>
-  </div>
+<style>
+  .signup-shell {
+    min-height: calc(100vh - 100px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    overflow: hidden;
+  }
 
-  <div class="auth-card tilt-card">
-    <h2>Sign Up</h2>
-    <p class="auth-subtext">Doctor registration</p>
+  .signup-layout {
+    width: 100%;
+    max-width: 1280px;
+    height: calc(100vh - 120px);
+    display: grid;
+    grid-template-columns: 0.95fr 1.05fr;
+    gap: 24px;
+    align-items: stretch;
+  }
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash {% if category == 'error' %}flash-error{% else %}flash-success{% endif %}">
-            {{ message }}
+  .signup-visual,
+  .signup-card {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(196, 214, 235, 0.75);
+    border-radius: 28px;
+    box-shadow: 0 12px 28px rgba(46, 88, 140, 0.08);
+    overflow: hidden;
+  }
+
+  .signup-visual {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .visual-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 22px;
+    background: linear-gradient(180deg, #eef5ff 0%, #f7fbff 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .visual-image {
+    width: 100%;
+    height: 100%;
+    max-width: 500px;
+    max-height: 500px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .signup-card {
+    padding: 18px 26px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .signup-title {
+    margin: 0 0 8px;
+    font-size: 2.8rem;
+    line-height: 1.02;
+    color: #13233d;
+    font-weight: 800;
+  }
+
+  .signup-subtitle {
+    margin: 0 0 14px;
+    color: #5d738f;
+    font-size: 0.98rem;
+    line-height: 1.55;
+    max-width: 560px;
+  }
+
+  .signup-form {
+    display: grid;
+    gap: 10px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .form-label {
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: #162842;
+    margin: 0;
+  }
+
+  .form-control {
+    width: 100%;
+    height: 50px;
+    border-radius: 17px;
+    border: 1.5px solid #c7d9ed;
+    background: #ffffff;
+    padding: 0 18px;
+    font-size: 0.98rem;
+    color: #13233d;
+    outline: none;
+    transition: 0.22s ease;
+    box-sizing: border-box;
+  }
+
+  .form-control:focus {
+    border-color: #63b6f4;
+    box-shadow: 0 0 0 4px rgba(99, 182, 244, 0.14);
+  }
+
+  select.form-control {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+    background-image:
+      linear-gradient(45deg, transparent 50%, #4f6f96 50%),
+      linear-gradient(135deg, #4f6f96 50%, transparent 50%);
+    background-position:
+      calc(100% - 24px) calc(50% - 3px),
+      calc(100% - 17px) calc(50% - 3px);
+    background-size: 7px 7px, 7px 7px;
+    background-repeat: no-repeat;
+    padding-right: 54px;
+  }
+
+  .password-field {
+    position: relative;
+    width: 100%;
+  }
+
+  .password-field .form-control {
+    padding-right: 56px;
+  }
+
+  .toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    color: #6b7f99;
+    border-radius: 8px;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .toggle-password:hover {
+    background: rgba(99, 182, 244, 0.10);
+    color: #2f5fe3;
+  }
+
+  .toggle-password:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 182, 244, 0.18);
+  }
+
+  .toggle-password svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  .signup-btn {
+    width: 100%;
+    height: 52px;
+    border: none;
+    border-radius: 18px;
+    background: linear-gradient(90deg, #28bbe8, #4a74f3);
+    color: #ffffff;
+    font-size: 1.08rem;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 6px;
+    box-shadow: 0 10px 20px rgba(66, 131, 236, 0.22);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .signup-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px rgba(66, 131, 236, 0.28);
+  }
+
+  .signup-footer {
+    margin-top: 10px;
+    color: #6b7f99;
+    font-size: 0.92rem;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  .signup-footer a {
+    color: #3f72eb;
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  .password-hint {
+    margin-top: 4px;
+    font-size: 0.85rem;
+    color: #5d738f;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 1100px) {
+    .signup-shell {
+      min-height: auto;
+      overflow: visible;
+      padding: 18px 0 24px;
+    }
+
+    .signup-layout {
+      height: auto;
+      grid-template-columns: 1fr;
+    }
+
+    .signup-visual {
+      order: 1;
+      min-height: 300px;
+    }
+
+    .signup-card {
+      order: 2;
+    }
+
+    .visual-image {
+      max-height: 300px;
+    }
+
+    .signup-title {
+      font-size: 2.4rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .signup-visual,
+    .signup-card {
+      border-radius: 22px;
+    }
+
+    .signup-visual {
+      padding: 14px;
+      min-height: 240px;
+    }
+
+    .signup-card {
+      padding: 18px 16px 16px;
+    }
+
+    .visual-inner {
+      border-radius: 18px;
+      padding: 12px;
+    }
+
+    .signup-title {
+      font-size: 2rem;
+    }
+
+    .form-control {
+      height: 48px;
+      border-radius: 15px;
+    }
+
+    .signup-btn {
+      height: 50px;
+      border-radius: 16px;
+      font-size: 1rem;
+    }
+  }
+</style>
+
+<section class="signup-shell">
+  <div class="signup-layout">
+    <div class="signup-visual">
+      <div class="visual-inner">
+        <img src="{{ url_for('static', filename='images/signup-melanoma.png') }}" alt="Melanoma screening illustration" class="visual-image">
+      </div>
+    </div>
+
+    <div class="signup-card">
+      <h1 class="signup-title">Join MelanoDetect</h1>
+      <p class="signup-subtitle">
+        Create your doctor account to access AI-powered skin lesion screening,
+        prediction results, Grad-CAM explanations, and patient analysis history.
+      </p>
+
+      <form method="POST" class="signup-form" id="signupForm">
+        <div class="form-group">
+          <label for="full_name" class="form-label">Full Name</label>
+          <input type="text" id="full_name" name="full_name" required class="form-control" placeholder="Enter your full name" minlength="3">
+        </div>
+
+        <div class="form-group">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" id="email" name="email" required class="form-control" placeholder="Enter your email address">
+        </div>
+
+        <div class="form-group">
+          <label for="gender" class="form-label">Gender</label>
+          <select id="gender" name="gender" required class="form-control">
+            <option value="" selected disabled>Select Gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <div class="password-field">
+            <input type="password" id="password" name="password" required class="form-control" placeholder="Create a secure password">
+            <button
+              type="button"
+              class="toggle-password"
+              onclick="togglePassword('password', this)"
+              aria-label="Show password"
+              aria-pressed="false">
+              <span class="icon-show">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </span>
+              <span class="icon-hide" style="display:none;">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 3l18 18"></path>
+                  <path d="M10.6 10.6A3 3 0 0013.4 13.4"></path>
+                  <path d="M9.9 5.1A11.4 11.4 0 0112 5c6.5 0 10 7 10 7a18.8 18.8 0 01-3.2 4.2"></path>
+                  <path d="M6.7 6.7A18.6 18.6 0 002 12s3.5 7 10 7a11.6 11.6 0 005.3-1.3"></path>
+                </svg>
+              </span>
+            </button>
           </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+          <div class="password-hint">
+            Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character.
+          </div>
+        </div>
 
-    <form action="{{ url_for('signup_page') }}" method="POST" class="auth-form">
-      <label>Full Name</label>
-      <input type="text" name="full_name" required placeholder="Enter full name">
+        <div class="form-group">
+          <label for="confirm_password" class="form-label">Confirm Password</label>
+          <div class="password-field">
+            <input type="password" id="confirm_password" name="confirm_password" required class="form-control" placeholder="Re-enter your password">
+            <button
+              type="button"
+              class="toggle-password"
+              onclick="togglePassword('confirm_password', this)"
+              aria-label="Show password"
+              aria-pressed="false">
+              <span class="icon-show">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </span>
+              <span class="icon-hide" style="display:none;">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 3l18 18"></path>
+                  <path d="M10.6 10.6A3 3 0 0013.4 13.4"></path>
+                  <path d="M9.9 5.1A11.4 11.4 0 0112 5c6.5 0 10 7 10 7a18.8 18.8 0 01-3.2 4.2"></path>
+                  <path d="M6.7 6.7A18.6 18.6 0 002 12s3.5 7 10 7a11.6 11.6 0 005.3-1.3"></path>
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
 
-      <label>Email</label>
-      <input type="email" name="email" required placeholder="Enter your email">
+        <button type="submit" class="signup-btn">Create Account</button>
 
-      <label>Password</label>
-      <input type="password" name="password" required placeholder="Create password">
-
-      <label>Confirm Password</label>
-      <input type="password" name="confirm_password" required placeholder="Confirm password">
-
-      <button type="submit" class="btn btn-primary">Create Account</button>
-    </form>
-
-    <p class="auth-footer">
-      Already registered?
-      <a href="{{ url_for('login_page') }}">Login here</a>
-    </p>
+        <div class="signup-footer">
+          Already have an account?
+          <a href="{{ url_for('login_page') }}">Log in</a>
+        </div>
+      </form>
+    </div>
   </div>
 </section>
+
+<script>
+  function togglePassword(fieldId, button) {
+    const field = document.getElementById(fieldId);
+    const showIcon = button.querySelector(".icon-show");
+    const hideIcon = button.querySelector(".icon-hide");
+
+    if (field.type === "password") {
+      field.type = "text";
+      showIcon.style.display = "none";
+      hideIcon.style.display = "inline-flex";
+      button.setAttribute("aria-label", "Hide password");
+      button.setAttribute("aria-pressed", "true");
+    } else {
+      field.type = "password";
+      showIcon.style.display = "inline-flex";
+      hideIcon.style.display = "none";
+      button.setAttribute("aria-label", "Show password");
+      button.setAttribute("aria-pressed", "false");
+    }
+  }
+
+  document.getElementById("signupForm").addEventListener("submit", function (e) {
+    const fullName = document.getElementById("full_name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const gender = document.getElementById("gender").value.trim();
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirm_password").value;
+
+    const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_\-+=\/\\[\];'`~]).{8,}$/;
+
+    if (fullName.length < 3) {
+      e.preventDefault();
+      Swal.fire({
+        icon: "error",
+        title: "Invalid Full Name",
+        text: "Full name must be at least 3 characters long.",
+        confirmButtonColor: "#4a74f3"
+      });
+      return;
+    }
+
+    if (!/^[A-Za-z ]+$/.test(fullName)) {
+      e.preventDefault();
+      Swal.fire({
+        icon: "error",
+        title: "Invalid Full Name",
+        text: "Full name should contain only letters and spaces.",
+        confirmButtonColor: "#4a74f3"
+      });
+      return;
+    }
+
+    if (!emailPattern.test(email)) {
+      e.preventDefault();
+      Swal.fire({
+        icon: "error",
+        title: "Invalid Email",
+        text: "Please enter a valid email address.",
+        confirmButtonColor: "#4a74f3"
+      });
+      return;
+    }
+
+    if (!gender) {
+      e.preventDefault();
+      Swal.fire({
+        icon: "error",
+        title: "Gender Required",
+        text: "Please select your gender.",
+        confirmButtonColor: "#4a74f3"
+      });
+      return;
+    }
+
+    if (!passwordPattern.test(password)) {
+      e.preventDefault();
+      Swal.fire({
+        icon: "error",
+        title: "Weak Password",
+        text: "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.",
+        confirmButtonColor: "#4a74f3"
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      e.preventDefault();
+      Swal.fire({
+        icon: "error",
+        title: "Password Mismatch",
+        text: "Passwords do not match.",
+        confirmButtonColor: "#4a74f3"
+      });
+    }
+  });
+</script>
 {% endblock %}
