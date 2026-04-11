@@ -8,13 +8,13 @@ MODEL_PATH = os.path.join(
     BASE_DIR,
     "..",
     "models",
-    "ham10000_efficientnetb0_big260_ft10.keras"
+    "efficientnet_stage1_best.keras"
 )
 
-THRESHOLD = 0.50
+THRESHOLD = 0.45
 IMG_SIZE = (260, 260)
 
-# compile=False is enough for prediction/inference
+# Load final improved EfficientNetB0 model for inference
 model = load_model(MODEL_PATH, compile=False)
 
 
@@ -27,9 +27,9 @@ def preprocess_image(img_path, target_size=IMG_SIZE):
 
 def predict_image(img_path):
     img_array = preprocess_image(img_path)
-    prediction = model.predict(img_array, verbose=0)[0][0]
+    prediction = float(model.predict(img_array, verbose=0)[0][0])
 
     label = "malignant" if prediction > THRESHOLD else "benign"
-    confidence = float(prediction if prediction > THRESHOLD else 1 - prediction)
+    confidence = prediction if prediction > THRESHOLD else 1 - prediction
 
     return label, confidence, img_array, model

@@ -1,52 +1,55 @@
+import os
+import cv2
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
+from tensorflow.keras.models import Model
 from tensorflow.keras.utils import load_img, img_to_array, array_to_img
 
-BASE_MODEL_NAME = "efficientnetb0"
+
+def find_last_conv_layer_name(model):
+    """
+    Automatically find the last usable 4D feature layer for Grad-CAM.
+    This avoids hardcoded names like 'efficientnetb0'.
+    """
+    for layer in reversed(model.layers):
+        try:
+            output_shape = layer.output.shape
+            if len(output_shape) == 4:
+                return layer.name
+        except Exception:
+            continue
+    raise ValueError("No suitable 4D convolutional layer found in the model.")
 
 
-def find_last_conv_layer_name(base_model):
-    for layer in reversed(base_model.layers):
-        if isinstance(layer, tf.keras.layers.Conv2D):
-            return layer.name
-    raise ValueError("No Conv2D layer found in the base model.")
+def build_gradcam_model(model, last_conv_layer_name=None):
+    """
+    Build a Grad-CAM model that returns:
+    - the output of the chosen last convolution-like layer
+    - the final model prediction
+    """
+    if last_conv_layer_name is None:
+        last_conv_layer_name = find_last_conv_layer_name(model)
 
-
-def build_gradcam_model(model, base_model_name=BASE_MODEL_NAME):
-    base_model = model.get_layer(base_model_name)
-    last_conv_layer_name = find_last_conv_layer_name(base_model)
-    last_conv_layer = base_model.get_layer(last_conv_layer_name)
-
-    feature_extractor = tf.keras.Model(
-        inputs=base_model.input,
-        outputs=[last_conv_layer.output, base_model.output]
+    grad_model = Model(
+        inputs=model.inputs,
+        outputs=[model.get_layer(last_conv_layer_name).output, model.output]
     )
 
-    return feature_extractor, base_model, last_conv_layer_name
+    return grad_model, last_conv_layer_name
 
 
-def make_gradcam_heatmap(img_array, model, feature_extractor, base_model):
+def make_gradcam_heatmap(img_array, model, grad_model=None, last_conv_layer_name=None):
+    """
+    Generate Grad-CAM heatmap for the predicted output.
+    """
+    if grad_model is None:
+        grad_model, last_conv_layer_name = build_gradcam_model(model, last_conv_layer_name)
+
     img_tensor = tf.convert_to_tensor(img_array, dtype=tf.float32)
 
     with tf.GradientTape() as tape:
-        conv_outputs, base_output = feature_extractor(img_tensor, training=False)
-
-        x = base_output
-        passed_base = False
-
-        for layer in model.layers:
-            if layer.name == base_model.name:
-                passed_base = True
-                continue
-
-            if passed_base:
-                try:
-                    x = layer(x, training=False)
-                except TypeError:
-                    x = layer(x)
-
-        predictions = x
+        conv_outputs, predictions = grad_model(img_tensor, training=False)
         class_channel = predictions[:, 0]
 
     grads = tape.gradient(class_channel, conv_outputs)
@@ -60,10 +63,13 @@ def make_gradcam_heatmap(img_array, model, feature_extractor, base_model):
     if max_val > 0:
         heatmap = heatmap / max_val
 
-    return heatmap.numpy()
+    return heatmap.numpy(), last_conv_layer_name
 
 
 def save_gradcam_overlay(img_path, heatmap, output_path, alpha=0.4):
+    """
+    Save Grad-CAM overlay image.
+    """
     img = load_img(img_path)
     img = img_to_array(img)
 
@@ -79,5 +85,25 @@ def save_gradcam_overlay(img_path, heatmap, output_path, alpha=0.4):
     superimposed_img = jet_heatmap * alpha + img
     superimposed_img = np.clip(superimposed_img, 0, 255).astype("uint8")
 
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     result_img = array_to_img(superimposed_img)
     result_img.save(output_path)
+
+
+def generate_gradcam(img_path, img_array, model, output_path):
+    """
+    Full Grad-CAM pipeline:
+    1. automatically find the last conv-like layer
+    2. generate heatmap
+    3. save overlay
+    4. return the selected layer name
+    """
+    grad_model, last_conv_layer_name = build_gradcam_model(model)
+    heatmap, last_conv_layer_name = make_gradcam_heatmap(
+        img_array=img_array,
+        model=model,
+        grad_model=grad_model,
+        last_conv_layer_name=last_conv_layer_name
+    )
+    save_gradcam_overlay(img_path, heatmap, output_path)
+    return last_conv_layer_name

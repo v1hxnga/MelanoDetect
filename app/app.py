@@ -281,8 +281,14 @@ def predict():
 
     label, confidence, img_array, model = predict_image(upload_path)
 
-    feature_extractor, base_model, last_conv_layer_name = build_gradcam_model(model)
-    heatmap = make_gradcam_heatmap(img_array, model, feature_extractor, base_model)
+    grad_model, last_conv_layer_name = build_gradcam_model(model)
+
+    heatmap, last_conv_layer_name = make_gradcam_heatmap(
+    img_array=img_array,
+    model=model,
+    grad_model=grad_model,
+    last_conv_layer_name=last_conv_layer_name
+)
 
     gradcam_filename = f"gradcam_{filename}"
     gradcam_path = os.path.join(app.config["GRADCAM_FOLDER"], gradcam_filename)
