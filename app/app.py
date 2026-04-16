@@ -9,6 +9,7 @@ from model_utils import predict_image
 from gradcam_utils import build_gradcam_model, make_gradcam_heatmap, save_gradcam_overlay
 from db_utils import init_db, create_doctor, authenticate_user, save_analysis_result, get_user_history
 from validator_utils import validate_lesion_image
+from explain_utils import generate_case_explanation
 
 app = Flask(__name__)
 app.secret_key = "melanodetect-secret-key-change-this"
@@ -281,6 +282,7 @@ def predict():
             "error"
         )
         return redirect(url_for("upload_page"))
+
     time.sleep(5)
 
     label, confidence, img_array, model = predict_image(upload_path)
@@ -304,10 +306,6 @@ def predict():
         malignant_pct = confidence_pct
         benign_pct = round(100 - confidence_pct, 1)
         risk_badge = "High Risk"
-        explanation = (
-            f"The AI model predicts this lesion as malignant with {confidence_pct}% confidence. "
-            "This result is for screening support only and should be reviewed by a medical professional."
-        )
         next_steps = [
             "Consult a dermatologist as soon as possible.",
             "Do not self-diagnose using the AI output alone.",
@@ -317,15 +315,21 @@ def predict():
         benign_pct = confidence_pct
         malignant_pct = round(100 - confidence_pct, 1)
         risk_badge = "Lower Risk"
-        explanation = (
-            f"The AI model predicts this lesion as benign with {confidence_pct}% confidence. "
-            "However, only a qualified medical professional can confirm the final diagnosis."
-        )
         next_steps = [
             "Monitor the lesion if any visible changes occur.",
             "Seek professional advice if symptoms persist.",
             "Use this result only as screening support."
         ]
+
+    explanation = generate_case_explanation(
+        image_path=upload_path,
+        heatmap=heatmap,
+        label=label,
+        confidence_pct=confidence_pct,
+        risk_badge=risk_badge,
+        benign_pct=benign_pct,
+        malignant_pct=malignant_pct,
+    )
 
     result = {
         "label": label,
