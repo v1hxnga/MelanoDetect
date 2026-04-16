@@ -6,7 +6,9 @@
   <title>MelanoDetect AI</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
 </head>
+
 <body>
+
   {% if session.get("user_role") %}
   <header class="site-header" id="siteHeader">
     <div class="nav-shell">
@@ -33,6 +35,87 @@
     {% block content %}{% endblock %}
   </main>
 
+  <!-- =========================
+       PROCESSING OVERLAY
+  ========================= -->
+  <div id="processingOverlay" class="processing-overlay hidden">
+    <div class="processing-modal">
+      <div class="processing-ring"></div>
+
+      <h3>Analyzing Image...</h3>
+      <p>Please wait while MelanoDetect processes the lesion image.</p>
+
+      <div class="processing-progress">
+        <div class="processing-progress-bar"></div>
+      </div>
+
+      <div class="processing-status-text">Validating image...</div>
+
+      <div class="processing-steps">
+        <span class="step-dot"></span>
+        <span>Medical AI screening in progress</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================
+       FOOTER (FIXED)
+  ========================= -->
+  <footer class="site-footer">
+    <div class="footer-shell">
+
+      <div class="footer-brand">
+        <div class="footer-brand-top">
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MelanoDetect logo" class="footer-logo">
+          <div>
+            <h3>MelanoDetect</h3>
+            <p>AI Skin Lesion Screening Platform</p>
+          </div>
+        </div>
+
+        <p class="footer-text">
+          Supporting early skin lesion screening with AI-based classification,
+          Grad-CAM explainability, and a user-friendly clinical workflow.
+        </p>
+      </div>
+
+      <div class="footer-links">
+
+        <div class="footer-col">
+          <h4>Navigation</h4>
+          <a href="{{ url_for('dashboard_page') }}">Dashboard</a>
+          <a href="{{ url_for('upload_page') }}">Upload</a>
+          <a href="{{ url_for('results_page') }}">Results</a>
+          <a href="{{ url_for('history_page') }}">History</a>
+        </div>
+
+        <div class="footer-col">
+          <h4>Features</h4>
+          <span>AI Classification</span>
+          <span>Grad-CAM Visualization</span>
+          <span>PDF Medical Reports</span>
+          <span>History Tracking</span>
+        </div>
+
+        <div class="footer-col">
+          <h4>Important Note</h4>
+          <p class="footer-note">
+            MelanoDetect is intended for screening support only and does not replace professional medical diagnosis.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 MelanoDetect. All rights reserved.</p>
+      <p>Designed for AI-assisted skin lesion screening.</p>
+    </div>
+  </footer>
+
+  <!-- =========================
+       SCRIPTS
+  ========================= -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="{{ url_for('static', filename='js/site.js') }}"></script>
 
@@ -52,5 +135,6 @@
       </script>
     {% endif %}
   {% endwith %}
+
 </body>
 </html>

@@ -52,6 +52,10 @@
     <div class="button-row">
       <a href="{{ url_for('gradcam_page') }}" class="btn btn-primary">View Grad-CAM</a>
       <a href="{{ url_for('upload_page') }}" class="btn btn-secondary">Analyze Another Image</a>
+     <button id="downloadResultPdfBtn" class="btn btn-pdf" type="button">
+    <span class="btn-icon">📄</span>
+   <span>Download PDF Report</span>
+</button>
     </div>
   </div>
 </section>
@@ -64,4 +68,252 @@
     {% endfor %}
   </ul>
 </section>
+
+<!-- SAFE RESULT DATA -->
+<script id="result-data" type="application/json">
+  {{ result | tojson }}
+</script>
+
+<script id="result-meta" type="application/json">
+  {
+    "user_name": {{ session.get("user_name", "User") | tojson }},
+    "user_email": {{ session.get("user_email", "Not Available") | tojson }},
+    "user_role": {{ session.get("user_role", "Doctor") | tojson }}
+  }
+</script>
+
+<!-- PDF LIBRARY -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+  async function imageUrlToDataUrl(url) {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function addWrappedText(doc, text, x, y, maxWidth, lineHeight = 6) {
+    const lines = doc.splitTextToSize(text || "-", maxWidth);
+    doc.text(lines, x, y);
+    return y + (lines.length * lineHeight);
+  }
+
+  async function generateSingleResultPdf() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
+
+    const result = JSON.parse(document.getElementById("result-data").textContent || "{}");
+    const meta = JSON.parse(document.getElementById("result-meta").textContent || "{}");
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // Header
+    doc.setFillColor(37, 99, 235);
+    doc.rect(0, 0, pageWidth, 28, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("MelanoDetect", 14, 12);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("AI Skin Lesion Screening Result Report", 14, 19);
+
+    doc.setTextColor(0, 0, 0);
+
+    let y = 38;
+
+    // Report summary
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(37, 99, 235);
+    doc.text("Patient / Account Summary", 14, y);
+    doc.setTextColor(0, 0, 0);
+    y += 8;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10.5);
+    doc.text(`Account Name: ${meta.user_name || "User"}`, 14, y);
+    y += 6;
+    doc.text(`Email: ${meta.user_email || "Not Available"}`, 14, y);
+    y += 6;
+    doc.text(`Role: ${meta.user_role || "Doctor"}`, 14, y);
+    y += 6;
+    doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, y);
+    y += 10;
+
+    // Main card
+    doc.setDrawColor(220, 226, 235);
+    doc.roundedRect(14, y, pageWidth - 28, 120, 4, 4);
+
+    // Result title
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("AI Screening Result", 18, y + 10);
+
+    // Status
+    doc.setFontSize(10);
+    if ((result.label || "").toLowerCase() === "malignant") {
+      doc.setTextColor(220, 38, 127);
+    } else {
+      doc.setTextColor(8, 145, 178);
+    }
+    doc.text((result.label || "Unknown").toUpperCase(), pageWidth - 45, y + 10);
+    doc.setTextColor(0, 0, 0);
+
+    // Uploaded image
+    const uploadImageUrl = "{{ url_for('static', filename='') }}" + (result.uploaded_image || "");
+    const uploadImageData = await imageUrlToDataUrl(uploadImageUrl);
+
+    if (uploadImageData) {
+      try {
+        doc.addImage(uploadImageData, "JPEG", 18, y + 16, 48, 48);
+      } catch (error) {
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(18, y + 16, 48, 48);
+        doc.setFontSize(8);
+        doc.text("Image unavailable", 26, y + 42);
+      }
+    } else {
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(18, y + 16, 48, 48);
+      doc.setFontSize(8);
+      doc.text("Image unavailable", 26, y + 42);
+    }
+
+    // Details
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Prediction:", 74, y + 20);
+    doc.text("Risk Badge:", 74, y + 28);
+    doc.text("Confidence:", 74, y + 36);
+    doc.text("Timestamp:", 74, y + 44);
+    doc.text("Benign Probability:", 74, y + 52);
+    doc.text("Malignant Probability:", 74, y + 60);
+
+    doc.setFont("helvetica", "normal");
+    doc.text(`${(result.label || "-").toUpperCase()}`, 112, y + 20);
+    doc.text(`${result.risk_badge || "-"}`, 112, y + 28);
+    doc.text(`${result.confidence ?? "-"}%`, 112, y + 36);
+    doc.text(`${result.timestamp || "-"}`, 112, y + 44);
+    doc.text(`${result.benign_pct ?? "-"}%`, 112, y + 52);
+    doc.text(`${result.malignant_pct ?? "-"}%`, 112, y + 60);
+
+    // Explanation
+    doc.setFont("helvetica", "bold");
+    doc.text("Clinical Explanation:", 18, y + 76);
+    doc.setFont("helvetica", "normal");
+    y = addWrappedText(doc, result.explanation || "-", 18, y + 84, pageWidth - 36, 5);
+
+    // Next steps
+    y += 6;
+    doc.setFont("helvetica", "bold");
+    doc.text("Recommended Next Steps:", 18, y);
+    y += 7;
+
+    doc.setFont("helvetica", "normal");
+    if (Array.isArray(result.next_steps) && result.next_steps.length > 0) {
+      result.next_steps.forEach((step) => {
+        y = addWrappedText(doc, `• ${step}`, 20, y, pageWidth - 40, 5);
+        y += 1;
+      });
+    } else {
+      y = addWrappedText(doc, "• No additional next-step guidance available.", 20, y, pageWidth - 40, 5);
+    }
+
+    // Optional Grad-CAM page
+    if (result.gradcam_image) {
+      doc.addPage();
+
+      doc.setFillColor(37, 99, 235);
+      doc.rect(0, 0, pageWidth, 28, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("MelanoDetect", 14, 12);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text("Grad-CAM Visual Explanation", 14, 19);
+      doc.setTextColor(0, 0, 0);
+
+      let gy = 38;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(37, 99, 235);
+      doc.text("Grad-CAM Heatmap", 14, gy);
+      doc.setTextColor(0, 0, 0);
+      gy += 8;
+
+      const gradcamUrl = "{{ url_for('static', filename='') }}" + result.gradcam_image;
+      const gradcamData = await imageUrlToDataUrl(gradcamUrl);
+
+      if (gradcamData) {
+        try {
+          doc.addImage(gradcamData, "JPEG", 20, gy, 170, 120);
+        } catch (error) {
+          doc.setDrawColor(200, 200, 200);
+          doc.rect(20, gy, 170, 120);
+          doc.setFontSize(10);
+          doc.text("Grad-CAM image unavailable", 75, gy + 60);
+        }
+      } else {
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(20, gy, 170, 120);
+        doc.setFontSize(10);
+        doc.text("Grad-CAM image unavailable", 75, gy + 60);
+      }
+
+      gy += 130;
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(10);
+      const gradcamExplanation = "The Grad-CAM visualization highlights image regions that most strongly influenced the model prediction. Warmer areas indicate stronger contribution to the final AI decision.";
+      addWrappedText(doc, gradcamExplanation, 20, gy, 170, 5);
+    }
+
+    // Footer on final page
+    const finalPageHeight = doc.internal.pageSize.getHeight();
+    doc.setDrawColor(220, 226, 235);
+    doc.line(14, finalPageHeight - 16, pageWidth - 14, finalPageHeight - 16);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text("MelanoDetect AI Report - Screening support only, not a final medical diagnosis.", 14, finalPageHeight - 9);
+    doc.setTextColor(0, 0, 0);
+
+    doc.save("MelanoDetect_Result_Report.pdf");
+  }
+
+  const downloadResultPdfBtn = document.getElementById("downloadResultPdfBtn");
+  if (downloadResultPdfBtn) {
+    downloadResultPdfBtn.addEventListener("click", async function () {
+      const originalText = downloadResultPdfBtn.textContent;
+      downloadResultPdfBtn.disabled = true;
+      downloadResultPdfBtn.textContent = "Generating PDF...";
+
+      try {
+        await generateSingleResultPdf();
+      } catch (error) {
+        console.error(error);
+        alert("Failed to generate the result PDF. Please try again.");
+      } finally {
+        downloadResultPdfBtn.disabled = false;
+        downloadResultPdfBtn.textContent = originalText;
+      }
+    });
+  }
+</script>
 {% endblock %}

@@ -23,6 +23,19 @@
     margin: 0;
   }
 
+  .history-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .pdf-note {
+    font-size: 0.92rem;
+    color: #7b8394;
+    margin-top: 6px;
+  }
+
   .history-grid {
     display: flex;
     flex-wrap: wrap;
@@ -69,7 +82,6 @@
     font-size: 0.78rem;
     font-weight: 800;
     color: #fff;
-    letter-spacing: 0.3px;
     text-transform: uppercase;
   }
 
@@ -90,7 +102,6 @@
     font-weight: 800;
     color: #6674e8;
     margin: 0 0 10px;
-    line-height: 1.1;
   }
 
   .history-time {
@@ -109,19 +120,11 @@
 
   .history-empty h3 {
     margin-bottom: 8px;
-    color: #2b2b2b;
   }
 
   .history-empty p {
     color: #6b7280;
     margin: 0;
-  }
-
-  @media (max-width: 900px) {
-    .history-card {
-      width: 100%;
-      flex: 1 1 100%;
-    }
   }
 </style>
 
@@ -129,6 +132,17 @@
   <div class="history-header">
     <h1>📜 Analysis History</h1>
     <p>Your past skin lesion analyses are stored here for reference.</p>
+
+    {% if history and history|length > 0 %}
+      <div class="history-actions">
+        <button id="downloadPdfBtn" class="btn btn-primary">
+          Download PDF Report
+        </button>
+      </div>
+      <p class="pdf-note">
+        Generates a structured medical-style report of your previous AI screening records.
+      </p>
+    {% endif %}
   </div>
 
   {% if history and history|length > 0 %}
@@ -141,7 +155,7 @@
             {% if item['label']|lower == 'benign' %}
               <span class="status-pill status-benign">BENIGN</span>
             {% else %}
-              <span class="status-pill status-malignant">CANCEROUS</span>
+              <span class="status-pill status-malignant">MALIGNANT</span>
             {% endif %}
           </div>
 
@@ -159,4 +173,235 @@
     </div>
   {% endif %}
 </section>
+
+{% if history and history|length > 0 %}
+  <!-- SAFE JSON -->
+  <script id="history-data" type="application/json">
+    {{ history | tojson }}
+  </script>
+
+  <script id="report-meta" type="application/json">
+    {
+      "user_name": {{ session.get("user_name", "User") | tojson }},
+      "user_email": {{ session.get("user_email", "Not Available") | tojson }},
+      "user_role": {{ session.get("user_role", "Doctor") | tojson }}
+    }
+  </script>
+
+  <!-- PDF LIBRARY -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script>
+    async function imageUrlToDataUrl(url) {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function addWrappedText(doc, text, x, y, maxWidth, lineHeight = 6) {
+      const lines = doc.splitTextToSize(text || "-", maxWidth);
+      doc.text(lines, x, y);
+      return y + (lines.length * lineHeight);
+    }
+
+    function drawHeader(doc, pageWidth) {
+      doc.setFillColor(37, 99, 235);
+      doc.rect(0, 0, pageWidth, 28, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text("MelanoDetect", 14, 12);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text("AI Skin Lesion Screening History Report", 14, 19);
+
+      doc.setTextColor(0, 0, 0);
+    }
+
+    function drawFooter(doc, pageWidth, pageHeight, pageNumber) {
+      doc.setDrawColor(220, 226, 235);
+      doc.line(14, pageHeight - 16, pageWidth - 14, pageHeight - 16);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      doc.text("MelanoDetect AI Report - Screening support only, not a final medical diagnosis.", 14, pageHeight - 9);
+      doc.text("Page " + pageNumber, pageWidth - 28, pageHeight - 9);
+      doc.setTextColor(0, 0, 0);
+    }
+
+    function addSectionTitle(doc, title, x, y) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(37, 99, 235);
+      doc.text(title, x, y);
+      doc.setTextColor(0, 0, 0);
+    }
+
+    async function generateMedicalPdfReport() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF("p", "mm", "a4");
+
+      const historyData = JSON.parse(document.getElementById("history-data").textContent || "[]");
+      const reportMeta = JSON.parse(document.getElementById("report-meta").textContent || "{}");
+
+      if (!historyData.length) {
+        alert("No history available to export.");
+        return;
+      }
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let pageNumber = 1;
+      let y = 36;
+
+      drawHeader(doc, pageWidth);
+
+      addSectionTitle(doc, "Report Summary", 14, y);
+      y += 8;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10.5);
+      doc.text(`Account Name: ${reportMeta.user_name || "User"}`, 14, y);
+      y += 6;
+      doc.text(`Email: ${reportMeta.user_email || "Not Available"}`, 14, y);
+      y += 6;
+      doc.text(`Role: ${reportMeta.user_role || "Doctor"}`, 14, y);
+      y += 6;
+      doc.text(`Total Records: ${historyData.length}`, 14, y);
+      y += 6;
+      doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, y);
+      y += 10;
+
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(14, y - 2, pageWidth - 28, 18, 3, 3);
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(9.5);
+      doc.setTextColor(71, 85, 105);
+      const summaryText = "This report contains previous AI-based screening records generated by MelanoDetect. Results are intended for screening support only and must not be treated as a substitute for professional clinical diagnosis.";
+      y = addWrappedText(doc, summaryText, 18, y + 4, pageWidth - 36, 5);
+      doc.setTextColor(0, 0, 0);
+      y += 8;
+
+      for (let i = 0; i < historyData.length; i++) {
+        const item = historyData[i];
+
+        if (y > 220) {
+          drawFooter(doc, pageWidth, pageHeight, pageNumber);
+          doc.addPage();
+          pageNumber += 1;
+          drawHeader(doc, pageWidth);
+          y = 36;
+        }
+
+        doc.setDrawColor(220, 226, 235);
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(14, y, pageWidth - 28, 72, 4, 4, "FD");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text(`Case ${i + 1}`, 18, y + 8);
+
+        doc.setFontSize(10);
+        const labelText = (item.label || "").toUpperCase();
+        if ((item.label || "").toLowerCase() === "benign") {
+          doc.setTextColor(8, 145, 178);
+        } else {
+          doc.setTextColor(220, 38, 127);
+        }
+        doc.text(labelText || "UNKNOWN", pageWidth - 48, y + 8);
+        doc.setTextColor(0, 0, 0);
+
+        const imageUrl = "{{ url_for('static', filename='') }}" + (item.uploaded_image || "");
+        const imageData = await imageUrlToDataUrl(imageUrl);
+
+        if (imageData) {
+          try {
+            doc.addImage(imageData, "JPEG", 18, y + 14, 34, 34);
+          } catch (error) {
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(18, y + 14, 34, 34);
+            doc.setFontSize(8);
+            doc.text("Image unavailable", 21, y + 32);
+          }
+        } else {
+          doc.setDrawColor(200, 200, 200);
+          doc.rect(18, y + 14, 34, 34);
+          doc.setFontSize(8);
+          doc.text("Image unavailable", 21, y + 32);
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text("Confidence:", 58, y + 18);
+        doc.text("Timestamp:", 58, y + 25);
+        doc.text("Risk Level:", 58, y + 32);
+        doc.text("AI Explanation:", 58, y + 41);
+
+        doc.setFont("helvetica", "normal");
+        doc.text(`${item.confidence ?? "-"}%`, 84, y + 18);
+        doc.text(`${item.timestamp || "-"}`, 84, y + 25);
+        doc.text(`${item.risk_badge || ((item.label || "").toLowerCase() === "malignant" ? "High Risk" : "Lower Risk")}`, 84, y + 32);
+
+        const explanationText =
+          item.explanation ||
+          ((item.label || "").toLowerCase() === "benign"
+            ? "The AI model found patterns more consistent with a benign lesion."
+            : "The AI model found patterns more consistent with a malignant lesion.");
+
+        addWrappedText(doc, explanationText, 84, y + 41, pageWidth - 102, 5);
+
+        doc.setDrawColor(235, 239, 245);
+        doc.line(18, y + 54, pageWidth - 18, y + 54);
+
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139);
+        const noteText =
+          (item.label || "").toLowerCase() === "malignant"
+            ? "Recommended next action: seek professional dermatological review as soon as possible."
+            : "Recommended next action: continue monitoring and seek medical review if visible changes occur.";
+        addWrappedText(doc, noteText, 18, y + 60, pageWidth - 36, 5);
+        doc.setTextColor(0, 0, 0);
+
+        y += 80;
+      }
+
+      drawFooter(doc, pageWidth, pageHeight, pageNumber);
+      doc.save("MelanoDetect_Medical_History_Report.pdf");
+    }
+
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+    if (downloadPdfBtn) {
+      downloadPdfBtn.addEventListener("click", async function () {
+        downloadPdfBtn.disabled = true;
+        const originalText = downloadPdfBtn.textContent;
+        downloadPdfBtn.textContent = "Generating PDF...";
+
+        try {
+          await generateMedicalPdfReport();
+        } catch (error) {
+          console.error(error);
+          alert("Failed to generate the PDF report. Please try again.");
+        } finally {
+          downloadPdfBtn.disabled = false;
+          downloadPdfBtn.textContent = originalText;
+        }
+      });
+    }
+  </script>
+{% endif %}
+
 {% endblock %}

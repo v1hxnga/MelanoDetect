@@ -1,114 +1,119 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="hero-dashboard">
-  <div class="hero-left">
-    <div class="hero-pill">Professional AI Screening Dashboard</div>
-    <h1>Welcome back, {{ session.get("user_name", "Doctor") }}</h1>
-    <p>
-      Upload lesion images, review prediction outcomes, inspect Grad-CAM explanations,
-      and monitor your recent activity from one clean dashboard.
-    </p>
+<section class="dashboard-page">
+  <section class="hero-dashboard-enhanced hero-dashboard-split">
+    <div class="hero-left-enhanced">
+      <div class="hero-pill">Professional AI Screening Dashboard</div>
+      <h1>Welcome back, {{ session.get("user_name", "Doctor") }}</h1>
+      <p>
+        Upload lesion images, review prediction outcomes, inspect Grad-CAM explanations,
+        and monitor your recent activity from one intelligent clinical dashboard.
+      </p>
 
-    <div class="hero-actions">
-      <a href="{{ url_for('upload_page') }}" class="btn btn-primary">Start New Analysis</a>
-      <a href="{{ url_for('history_page') }}" class="btn btn-secondary">View History</a>
-    </div>
-  </div>
+      <div class="hero-actions">
+        <a href="{{ url_for('upload_page') }}" class="btn btn-primary">Start New Analysis</a>
+        <a href="{{ url_for('history_page') }}" class="btn btn-secondary">View History</a>
+      </div>
 
-  <div class="hero-right section-card tilt-card">
-    <div class="quick-panel-header">
-      <h3>Current Status</h3>
-      <span class="status-dot"></span>
-    </div>
-    <p class="quick-panel-text">System ready for lesion screening and result review.</p>
-
-    <div class="quick-stats">
-      <div class="stat-box">
-        <span>Total Uploads</span>
-        <strong data-count="{{ stats.total_uploads }}">0</strong>
-      </div>
-      <div class="stat-box">
-        <span>Latest Prediction</span>
-        <strong>{{ stats.latest_prediction }}</strong>
-      </div>
-      <div class="stat-box">
-        <span>Latest Confidence</span>
-        <strong>{{ stats.latest_confidence }}</strong>
-      </div>
-      <div class="stat-box">
-        <span>Role</span>
-        <strong>{{ stats.role }}</strong>
+      <div class="dashboard-highlights">
+        <div class="highlight-chip">AI Classification</div>
+        <div class="highlight-chip">Grad-CAM Explainability</div>
+        <div class="highlight-chip">History Tracking</div>
       </div>
     </div>
-  </div>
-</section>
 
-<section class="card-grid three">
-  <div class="section-card tilt-card">
-    <h3>Upload Module</h3>
-    <p>Submit a valid lesion image and begin AI-assisted screening.</p>
-    <a href="{{ url_for('upload_page') }}" class="text-link">Go to Upload →</a>
-  </div>
+    <div class="hero-visual-card">
+      <div class="hero-visual-inner">
+        <div class="molecule-scene">
+          <span class="m-line line-1"></span>
+          <span class="m-line line-2"></span>
+          <span class="m-line line-3"></span>
+          <span class="m-line line-4"></span>
+          <span class="m-line line-5"></span>
+          <span class="m-line line-6"></span>
 
-  <div class="section-card tilt-card">
-    <h3>Results Review</h3>
-    <p>Access the latest confidence scores, probability bars, and explanation text.</p>
-    <a href="{{ url_for('results_page') }}" class="text-link">Open Results →</a>
-  </div>
+          <span class="m-node node-1"></span>
+          <span class="m-node node-2"></span>
+          <span class="m-node node-3"></span>
+          <span class="m-node node-4"></span>
+          <span class="m-node node-5"></span>
+          <span class="m-node node-6"></span>
+          <span class="m-node node-7"></span>
+          <span class="m-node node-8"></span>
 
-  <div class="section-card tilt-card">
-    <h3>History Tracking</h3>
-    <p>Check your recent analysis activity and keep track of earlier uploads.</p>
-    <a href="{{ url_for('history_page') }}" class="text-link">See History →</a>
-  </div>
-</section>
-
-<section class="card-grid two">
-  <div class="section-card">
-    <div class="section-header">
-      <h3>Latest Analysis</h3>
-    </div>
-
-    {% if latest_result %}
-      <div class="result-preview">
-        <div class="badge-row">
-          <span class="result-badge {% if latest_result.label == 'malignant' %}badge-danger{% else %}badge-safe{% endif %}">
-            {{ latest_result.label|capitalize }}
-          </span>
-          <span class="muted">Confidence: {{ latest_result.confidence }}%</span>
+          <span class="m-glow glow-a"></span>
+          <span class="m-glow glow-b"></span>
         </div>
-        <p>{{ latest_result.explanation }}</p>
-        <a href="{{ url_for('results_page') }}" class="btn btn-secondary">Open Latest Result</a>
-      </div>
-    {% else %}
-      <p class="muted">No analysis has been completed yet.</p>
-    {% endif %}
-  </div>
 
-  <div class="section-card">
-    <div class="section-header">
-      <h3>Recent Activity</h3>
+        <div class="hero-visual-label">
+          <h3>AI Molecular Intelligence</h3>
+          <p>Advanced lesion screening with explainable deep learning analysis.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dashboard-module-grid">
+    <div class="module-card section-card tilt-card">
+      <div class="module-icon-box">📤</div>
+      <h3>Upload Module</h3>
+      <p>Submit a valid lesion image and begin AI-assisted screening with real-time analysis.</p>
+      <a href="{{ url_for('upload_page') }}" class="text-link">Go to Upload →</a>
     </div>
 
-    {% if history %}
-      <div class="activity-list">
-        {% for item in history %}
-          <div class="activity-item">
-            <div>
-              <strong>{{ item.filename }}</strong>
-              <p>{{ item.timestamp }}</p>
-            </div>
-            <div class="activity-right">
-              <span>{{ item.label }}</span>
-              <small>{{ item.confidence }}</small>
-            </div>
-          </div>
-        {% endfor %}
+    <div class="module-card section-card tilt-card">
+      <div class="module-icon-box">📊</div>
+      <h3>Results Review</h3>
+      <p>Access confidence scores, probability bars, medical explanation text, and downloadable result reports.</p>
+      <a href="{{ url_for('results_page') }}" class="text-link">Open Results →</a>
+    </div>
+
+    <div class="module-card section-card tilt-card">
+      <div class="module-icon-box">🕘</div>
+      <h3>History Tracking</h3>
+      <p>Review previous lesion analyses and export structured medical-style history reports.</p>
+      <a href="{{ url_for('history_page') }}" class="text-link">See History →</a>
+    </div>
+  </section>
+
+  <section class="dashboard-instructions section-card">
+    <div class="section-header enhanced-section-header">
+      <div>
+        <h3>How to Use the System</h3>
+        <p class="section-subtext">Quick guidance for using MelanoDetect effectively and safely.</p>
       </div>
-    {% else %}
-      <p class="muted">No recent activity yet.</p>
-    {% endif %}
-  </div>
+    </div>
+
+    <div class="instruction-grid-dashboard">
+      <div class="instruction-card">
+        <div class="instruction-number">1</div>
+        <h4>Upload a Clear Lesion Image</h4>
+        <p>Use a high-quality lesion or dermoscopic image to improve AI prediction reliability.</p>
+      </div>
+
+      <div class="instruction-card">
+        <div class="instruction-number">2</div>
+        <h4>Review the Prediction</h4>
+        <p>Check the classification label, confidence score, and probability bars to understand the AI output.</p>
+      </div>
+
+      <div class="instruction-card">
+        <div class="instruction-number">3</div>
+        <h4>Inspect the Grad-CAM</h4>
+        <p>Open the Grad-CAM page to see which image regions influenced the final AI decision.</p>
+      </div>
+
+      <div class="instruction-card">
+        <div class="instruction-number">4</div>
+        <h4>Use as Screening Support</h4>
+        <p>MelanoDetect is an AI screening tool and should not replace professional medical diagnosis.</p>
+      </div>
+    </div>
+
+    <div class="instruction-note">
+      ⚠️ For best results, avoid blurry, dark, unrelated, or low-quality uploads. Focus on the lesion area clearly.
+    </div>
+  </section>
 </section>
 {% endblock %}

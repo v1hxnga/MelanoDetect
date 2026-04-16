@@ -1,134 +1,149 @@
 {% extends "base.html" %}
 
 {% block content %}
-<style>
-  .profile-hero {
-    display: flex;
-    align-items: center;
-    gap: 22px;
-    margin-bottom: 26px;
-  }
+<section class="profile-page">
+  <section class="profile-hero-enhanced section-card">
+    <div class="profile-hero-left">
+      <div class="profile-avatar-shell">
+        <div class="profile-avatar-glow"></div>
+        <img src="{{ url_for('static', filename=doctor_image) }}" alt="Doctor profile image" class="profile-avatar-enhanced">
+      </div>
 
-  .profile-avatar {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-    border-radius: 20px;
-    background: #ffffff;
-    padding: 10px;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-  }
+      <div class="profile-hero-copy">
+        <div class="hero-pill">Professional Profile</div>
+        <h1>Welcome, {{ session['user_name'] }}</h1>
+        <p class="muted profile-hero-text">
+          Manage your MelanoDetect account details, access privileges, and screening workspace overview.
+        </p>
 
-  .profile-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-  }
-
-  .profile-card {
-    background: #ffffff;
-    border-radius: 24px;
-    padding: 30px;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
-  }
-
-  .profile-card h3 {
-    margin-top: 0;
-    margin-bottom: 24px;
-    font-size: 2rem;
-    color: #13233d;
-  }
-
-  .profile-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 18px 0;
-    border-bottom: 1px solid #d8e0eb;
-    gap: 20px;
-  }
-
-  .profile-row:last-child {
-    border-bottom: none;
-  }
-
-  .profile-label {
-    color: #5f738d;
-    font-size: 1.05rem;
-  }
-
-  .profile-value {
-    color: #13233d;
-    font-weight: 700;
-    font-size: 1.05rem;
-    text-align: right;
-  }
-
-  .system-list {
-    margin: 0;
-    padding-left: 24px;
-    color: #334a68;
-    line-height: 2;
-    font-size: 1.05rem;
-  }
-
-  @media (max-width: 900px) {
-    .profile-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .profile-hero {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-  }
-</style>
-
-<section class="page-top">
-  <div class="profile-hero">
-    <img src="{{ url_for('static', filename=doctor_image) }}" alt="Doctor profile image" class="profile-avatar">
-
-    <div>
-      <div class="hero-pill">Profile Overview</div>
-      <h1>Profile</h1>
-      <p class="muted">Professional account information and access overview.</p>
-    </div>
-  </div>
-</section>
-
-<section class="profile-grid">
-  <div class="profile-card">
-    <h3>Account Information</h3>
-
-    <div class="profile-row">
-      <div class="profile-label">Full Name</div>
-      <div class="profile-value">{{ session['user_name'] }}</div>
+        <div class="profile-badge-row">
+          <span class="profile-chip chip-role">{{ session['user_role'] }}</span>
+          <span class="profile-chip chip-gender">{{ session['user_gender']|capitalize }}</span>
+          <span class="profile-chip chip-status">Active Account</span>
+        </div>
+      </div>
     </div>
 
-    <div class="profile-row">
-      <div class="profile-label">Email</div>
-      <div class="profile-value">{{ session['user_email'] }}</div>
+    <div class="profile-hero-right">
+      <div class="profile-mini-stat">
+        <span>Workspace</span>
+        <strong>MelanoDetect</strong>
+      </div>
+      <div class="profile-mini-stat">
+        <span>Access Level</span>
+        <strong>{{ session['user_role'] }}</strong>
+      </div>
+      <div class="profile-mini-stat">
+        <span>System State</span>
+        <strong class="online-state">Online</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="profile-stats-grid">
+    <div class="profile-stat-card">
+      <div class="profile-stat-icon">👤</div>
+      <div>
+        <span class="profile-stat-label">Account Holder</span>
+        <strong class="profile-stat-value">{{ session['user_name'] }}</strong>
+      </div>
     </div>
 
-    <div class="profile-row">
-      <div class="profile-label">Role</div>
-      <div class="profile-value">{{ session['user_role'] }}</div>
+    <div class="profile-stat-card">
+      <div class="profile-stat-icon">📧</div>
+      <div>
+        <span class="profile-stat-label">Registered Email</span>
+        <strong class="profile-stat-value">{{ session['user_email'] }}</strong>
+      </div>
     </div>
 
-    <div class="profile-row">
-      <div class="profile-label">Gender</div>
-      <div class="profile-value">{{ session['user_gender']|capitalize }}</div>
+    <div class="profile-stat-card">
+      <div class="profile-stat-icon">🩺</div>
+      <div>
+        <span class="profile-stat-label">Primary Role</span>
+        <strong class="profile-stat-value">{{ session['user_role'] }}</strong>
+      </div>
     </div>
-  </div>
 
-  <div class="profile-card">
-    <h3>System Access</h3>
-    <ul class="system-list">
-      <li>Upload lesion images for screening</li>
-      <li>Review model predictions and confidence</li>
-      <li>Open Grad-CAM explanation page</li>
-      <li>Track recent activity in History</li>
-    </ul>
-  </div>
+    <div class="profile-stat-card">
+      <div class="profile-stat-icon">🔐</div>
+      <div>
+        <span class="profile-stat-label">Account Status</span>
+        <strong class="profile-stat-value">Verified Session</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="profile-main-grid">
+    <div class="profile-card-enhanced section-card">
+      <div class="profile-card-head">
+        <h3>Account Information</h3>
+        <span class="soft-chip">Profile Details</span>
+      </div>
+
+      <div class="profile-info-list">
+        <div class="profile-info-row">
+          <div class="profile-info-left">
+            <span class="profile-info-icon">👤</span>
+            <div>
+              <div class="profile-info-label">Full Name</div>
+              <div class="profile-info-sub">Registered account holder</div>
+            </div>
+          </div>
+          <div class="profile-info-value">{{ session['user_name'] }}</div>
+        </div>
+
+        <div class="profile-info-row">
+          <div class="profile-info-left">
+            <span class="profile-info-icon">📧</span>
+            <div>
+              <div class="profile-info-label">Email Address</div>
+              <div class="profile-info-sub">Primary login credential</div>
+            </div>
+          </div>
+          <div class="profile-info-value">{{ session['user_email'] }}</div>
+        </div>
+
+        <div class="profile-info-row">
+          <div class="profile-info-left">
+            <span class="profile-info-icon">🩺</span>
+            <div>
+              <div class="profile-info-label">Role</div>
+              <div class="profile-info-sub">System permission level</div>
+            </div>
+          </div>
+          <div class="profile-info-value">{{ session['user_role'] }}</div>
+        </div>
+
+        <div class="profile-info-row">
+          <div class="profile-info-left">
+            <span class="profile-info-icon">⚧</span>
+            <div>
+              <div class="profile-info-label">Gender</div>
+              <div class="profile-info-sub">Profile display preference</div>
+            </div>
+          </div>
+          <div class="profile-info-value">{{ session['user_gender']|capitalize }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-side-stack">
+      <div class="profile-card-enhanced section-card tilt-card">
+        <div class="profile-card-head">
+          <h3>System Access</h3>
+          <span class="soft-chip">Allowed Actions</span>
+        </div>
+
+        <ul class="profile-feature-list">
+          <li>Upload lesion images for AI screening</li>
+          <li>Review prediction outcomes and confidence scores</li>
+          <li>Access Grad-CAM visual explanation results</li>
+          <li>Track previous screening records in History</li>
+          <li>Navigate between dashboard, upload, and results pages</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 </section>
 {% endblock %}

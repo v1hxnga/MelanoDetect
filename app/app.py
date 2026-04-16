@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.utils import secure_filename
@@ -179,7 +180,9 @@ def dashboard_page():
     if not logged_in():
         return redirect(url_for("login_page"))
 
-    history = get_user_history(session["user_id"])
+    history_rows = get_user_history(session["user_id"])
+    history = [dict(item) for item in history_rows]
+
     latest_result = session.get("last_result")
 
     if not latest_result and history:
@@ -278,17 +281,18 @@ def predict():
             "error"
         )
         return redirect(url_for("upload_page"))
+    time.sleep(5)
 
     label, confidence, img_array, model = predict_image(upload_path)
 
     grad_model, last_conv_layer_name = build_gradcam_model(model)
 
     heatmap, last_conv_layer_name = make_gradcam_heatmap(
-    img_array=img_array,
-    model=model,
-    grad_model=grad_model,
-    last_conv_layer_name=last_conv_layer_name
-)
+        img_array=img_array,
+        model=model,
+        grad_model=grad_model,
+        last_conv_layer_name=last_conv_layer_name
+    )
 
     gradcam_filename = f"gradcam_{filename}"
     gradcam_path = os.path.join(app.config["GRADCAM_FOLDER"], gradcam_filename)
@@ -353,7 +357,9 @@ def results_page():
 
     result = session.get("last_result")
     if not result:
-        history = get_user_history(session["user_id"])
+        history_rows = get_user_history(session["user_id"])
+        history = [dict(item) for item in history_rows]
+
         if history:
             latest = history[0]
             result = {
@@ -384,7 +390,9 @@ def gradcam_page():
 
     result = session.get("last_result")
     if not result:
-        history = get_user_history(session["user_id"])
+        history_rows = get_user_history(session["user_id"])
+        history = [dict(item) for item in history_rows]
+
         if history:
             latest = history[0]
             result = {
@@ -413,7 +421,9 @@ def history_page():
     if not logged_in():
         return redirect(url_for("login_page"))
 
-    history = get_user_history(session["user_id"])
+    history_rows = get_user_history(session["user_id"])
+    history = [dict(item) for item in history_rows]
+
     return render_template("history.html", history=history, active_page="history")
 
 
