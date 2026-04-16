@@ -1,9 +1,7 @@
-tensorflow
+Flask
 numpy
-pandas
-scikit-learn
-matplotlib
-seaborn
-flask
 pillow
-jupyter
+tensorflow
+opencv-python-headless
+werkzeug
+gunicorn
