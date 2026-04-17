@@ -6,7 +6,14 @@ from werkzeug.utils import secure_filename
 
 from model_utils import predict_image
 from gradcam_utils import build_gradcam_model, make_gradcam_heatmap, save_gradcam_overlay
-from db_utils import init_db, create_doctor, authenticate_user, save_analysis_result, get_user_history
+from db_utils import (
+    init_db,
+    create_doctor,
+    authenticate_user,
+    save_analysis_result,
+    get_user_history,
+    delete_history_item
+)
 from validator_utils import validate_lesion_image
 from explain_utils import generate_case_explanation
 
@@ -356,6 +363,7 @@ def predict():
         flash(f"Prediction failed: {str(e)}", "error")
         return redirect(url_for("upload_page"))
 
+
 @app.route("/results")
 def results_page():
     if not logged_in():
@@ -431,6 +439,21 @@ def history_page():
     history = [dict(item) for item in history_rows]
 
     return render_template("history.html", history=history, active_page="history")
+
+
+@app.route("/history/delete/<int:history_id>", methods=["POST"])
+def delete_history_page(history_id):
+    if not logged_in():
+        return redirect(url_for("login_page"))
+
+    deleted = delete_history_item(session["user_id"], history_id)
+
+    if deleted:
+        flash("History record deleted successfully.", "success")
+    else:
+        flash("Unable to delete that record.", "error")
+
+    return redirect(url_for("history_page"))
 
 
 @app.route("/admin")

@@ -15,13 +15,326 @@
   </div>
 </section>
 
+<style>
+  .gradcam-hero-card {
+    padding: 26px;
+  }
+
+  .gradcam-hero-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .gradcam-overview-text {
+    max-width: 760px;
+  }
+
+  .tab-switch {
+    margin-top: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #eef4fb;
+    border: 1px solid #cfdceb;
+    border-radius: 999px;
+    padding: 6px;
+  }
+
+  .tab-btn {
+    border: none;
+    background: transparent;
+    color: #355070;
+    font-weight: 700;
+    padding: 10px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.22s ease;
+  }
+
+  .tab-btn.active {
+    background: linear-gradient(135deg, #36c0e0, #4a74f3);
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(74, 116, 243, 0.22);
+  }
+
+  .hidden-panel {
+    display: none;
+  }
+
+  .panel-head {
+    margin-bottom: 10px;
+  }
+
+  .gradcam-image {
+    width: 100%;
+    height: 260px;
+    border-radius: 18px;
+    object-fit: cover;
+    display: block;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+  }
+
+  .simple-reasoning-box {
+    background: linear-gradient(180deg, #eff7ff 0%, #f8fbff 100%);
+    border: 1px solid #cfe1f4;
+    border-radius: 20px;
+    padding: 18px 18px 16px;
+  }
+
+  .simple-reasoning-box h4 {
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+    color: #17365d;
+  }
+
+  .simple-reasoning-box p {
+    margin: 0;
+    color: #425c7d;
+    line-height: 1.8;
+  }
+
+  .attention-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+
+  .attention-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 18px;
+    border: 1px solid #d8e3ef;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.05);
+  }
+
+  .attention-card strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #1a2940;
+  }
+
+  .attention-card p {
+    margin: 0;
+    color: #5d6f86;
+    font-size: 0.96rem;
+    line-height: 1.65;
+  }
+
+  .risk-scale {
+    margin-top: 16px;
+  }
+
+  .risk-scale-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    color: #6b7b90;
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+
+  .risk-bar {
+    position: relative;
+    height: 12px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #29d3b2 0%, #f8c84e 50%, #ff6b7a 100%);
+    overflow: hidden;
+  }
+
+  .risk-marker {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid #17365d;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  }
+
+  .legend-card {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  .legend-dot.red {
+    background: #ef4444;
+  }
+
+  .legend-dot.orange {
+    background: #fb923c;
+  }
+
+  .legend-dot.blue {
+    background: #3b82f6;
+  }
+
+  .legend-card p {
+    margin: 5px 0 0;
+    color: #5d6f86;
+    line-height: 1.6;
+  }
+
+  .simple-action-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #425c7d;
+    line-height: 1.95;
+  }
+
+  .clinical-note-box {
+    background: linear-gradient(180deg, #eff7ff 0%, #f8fbff 100%);
+    border: 1px solid #cfe1f4;
+    border-radius: 18px;
+    padding: 16px;
+    color: #36567c;
+    line-height: 1.8;
+  }
+
+  .mini-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 16px;
+  }
+
+  .metric-box {
+    background: #f7fbff;
+    border: 1px solid #d3e0ef;
+    border-radius: 16px;
+    padding: 14px;
+  }
+
+  .metric-box span {
+    display: block;
+    font-size: 0.86rem;
+    color: #6d7f95;
+    margin-bottom: 5px;
+  }
+
+  .metric-box strong {
+    color: #1d2d44;
+    font-size: 1.02rem;
+  }
+
+  .advanced-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  .advanced-metric-card {
+    background: linear-gradient(180deg, #fcfdff 0%, #f4f8fc 100%);
+    border-radius: 18px;
+    padding: 18px;
+    border: 1px solid #d8e3ef;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
+    min-height: 122px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .advanced-metric-card span {
+    display: block;
+    font-size: 0.84rem;
+    color: #74869b;
+    margin-bottom: 8px;
+  }
+
+  .advanced-metric-card strong {
+    display: block;
+    font-size: 1.05rem;
+    color: #18283e;
+    margin-bottom: 6px;
+  }
+
+  .advanced-metric-card p {
+    margin: 0;
+    color: #607289;
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .advanced-summary-box {
+    background: #f8fbff;
+    border: 1px solid #d8e3ef;
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .advanced-summary-box h4 {
+    margin: 0 0 10px;
+    color: #17365d;
+    font-size: 1.05rem;
+  }
+
+  .advanced-summary-box p {
+    margin: 0;
+    color: #4b627f;
+    line-height: 1.8;
+  }
+
+  .decision-box {
+    background: linear-gradient(180deg, #fffaf1 0%, #fffdf7 100%);
+    border: 1px solid #f2dfb0;
+    border-radius: 18px;
+    padding: 18px;
+    color: #73561b;
+    line-height: 1.8;
+    margin-bottom: 18px;
+  }
+
+  .feature-insight-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #425c7d;
+    line-height: 1.95;
+  }
+
+  .feature-insight-list li {
+    margin-bottom: 10px;
+  }
+
+  .section-card {
+    overflow: hidden;
+  }
+
+  @media (max-width: 980px) {
+    .attention-strip,
+    .advanced-grid,
+    .mini-metrics {
+      grid-template-columns: 1fr;
+    }
+
+    .gradcam-image {
+      height: auto;
+    }
+  }
+</style>
+
 <section class="section-card gradcam-hero-card">
   <div class="gradcam-hero-top">
-    <div>
+    <div class="gradcam-overview-text">
       <h3>Explanation Overview</h3>
       <p class="muted">
-        Grad-CAM highlights the most important areas used by the model when predicting
-        whether the lesion is benign or malignant.
+        Grad-CAM highlights the most important regions used by the model when predicting
+        whether the lesion is benign or malignant. The visual map helps explain what the
+        AI focused on before producing the final decision.
       </p>
     </div>
 
@@ -30,7 +343,6 @@
         {{ result.label|capitalize }}
       </span>
       <span class="soft-chip">Confidence: {{ result.confidence }}%</span>
-      <span class="soft-chip">Validator: {{ result.validator_score }}</span>
     </div>
   </div>
 
@@ -45,17 +357,62 @@
     <div class="section-card image-panel tilt-card">
       <div class="panel-head">
         <h3>Original Lesion Image</h3>
-        <p class="muted">Uploaded image used for prediction</p>
+        <p class="muted">Original uploaded lesion image used for the final prediction.</p>
       </div>
-      <img src="{{ url_for('static', filename=result.uploaded_image) }}" alt="Original image" class="result-image">
+      <img src="{{ url_for('static', filename=result.uploaded_image) }}" alt="Original image" class="gradcam-image">
     </div>
 
     <div class="section-card image-panel tilt-card">
       <div class="panel-head">
         <h3>Grad-CAM Heatmap</h3>
-        <p class="muted">Highlighted focus areas used by the model</p>
+        <p class="muted">Highlighted attention areas showing where the AI focused most strongly.</p>
       </div>
-      <img src="{{ url_for('static', filename=result.gradcam_image) }}" alt="Grad-CAM image" class="result-image">
+      <img src="{{ url_for('static', filename=result.gradcam_image) }}" alt="Grad-CAM image" class="gradcam-image">
+    </div>
+  </section>
+
+  <section class="card-grid two">
+    <div class="section-card">
+      <h3>AI Reasoning Summary</h3>
+      <div class="simple-reasoning-box">
+        <h4>Why this result was produced</h4>
+        <p>
+          The model concentrated mainly on the most visually significant lesion regions shown in the Grad-CAM heatmap.
+          Higher-activation areas indicate the image regions that had the strongest influence on the final
+          <strong>{{ result.label|capitalize }}</strong> prediction with
+          <strong>{{ result.confidence }}%</strong> confidence.
+        </p>
+      </div>
+
+      <div class="risk-scale">
+        <div class="risk-scale-top">
+          <span>Lower Risk</span>
+          <span>Moderate</span>
+          <span>Higher Risk</span>
+        </div>
+        <div class="risk-bar">
+          {% set risk_position = result.malignant_pct if result.label == 'malignant' else (100 - result.benign_pct) %}
+          <div class="risk-marker" style="left: {{ risk_position }}%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>What This Means</h3>
+      <div class="attention-strip">
+        <div class="attention-card">
+          <strong>High-Attention Regions</strong>
+          <p>Warm colors show the lesion regions that contributed most strongly to the AI’s decision.</p>
+        </div>
+        <div class="attention-card">
+          <strong>Moderate Influence</strong>
+          <p>Orange and yellow areas reflect image regions with moderate contribution to the prediction.</p>
+        </div>
+        <div class="attention-card">
+          <strong>Low Influence</strong>
+          <p>Cooler regions were less important to the final classification outcome.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -87,19 +444,20 @@
 
   <section class="card-grid two">
     <div class="section-card">
-      <h3>Key Findings</h3>
-      <ul class="feature-list">
-        <li>The AI focused on the lesion region highlighted in the Grad-CAM map.</li>
-        <li>The highlighted zones help explain how the model reached its prediction.</li>
-        <li>This visual explanation improves transparency, but it is not a final diagnosis.</li>
+      <h3>Recommended Next Steps</h3>
+      <ul class="simple-action-list">
+        <li>Use this Grad-CAM view as an explanation aid, not as a final diagnosis.</li>
+        <li>Focus on the highlighted lesion areas when reviewing the uploaded image.</li>
+        <li>If the lesion changes in color, border, size, or texture, seek medical evaluation.</li>
+        <li>Use the AI result together with professional clinical judgment.</li>
       </ul>
     </div>
 
     <div class="section-card">
       <h3>Clinical Interpretation Note</h3>
-      <div class="info-box">
-        Grad-CAM should be used as an interpretability aid only. It does not replace expert dermatological review,
-        biopsy, or laboratory confirmation.
+      <div class="clinical-note-box">
+        Grad-CAM improves transparency by showing where the AI focused, but it does not replace dermatologist review,
+        biopsy, or laboratory confirmation. The visual explanation supports interpretation of the AI output only.
       </div>
 
       <div class="mini-metrics">
@@ -125,54 +483,111 @@
     <div class="section-card image-panel tilt-card">
       <div class="panel-head">
         <h3>Original Input</h3>
-        <p class="muted">Preprocessed lesion input image</p>
+        <p class="muted">Preprocessed lesion input image used by the classifier.</p>
       </div>
-      <img src="{{ url_for('static', filename=result.uploaded_image) }}" alt="Original image" class="result-image">
+      <img src="{{ url_for('static', filename=result.uploaded_image) }}" alt="Original image" class="gradcam-image">
     </div>
 
     <div class="section-card image-panel tilt-card">
       <div class="panel-head">
         <h3>Activation Overlay</h3>
-        <p class="muted">Grad-CAM focus visualization</p>
+        <p class="muted">Grad-CAM overlay showing the strongest activation regions from the selected convolutional layer.</p>
       </div>
-      <img src="{{ url_for('static', filename=result.gradcam_image) }}" alt="Grad-CAM image" class="result-image">
+      <img src="{{ url_for('static', filename=result.gradcam_image) }}" alt="Grad-CAM image" class="gradcam-image">
     </div>
   </section>
 
-  <section class="card-grid three">
-    <div class="section-card metric-card">
+  <section class="advanced-grid">
+    <div class="advanced-metric-card">
       <span>Model</span>
       <strong>EfficientNetB0</strong>
+      <p>Fine-tuned convolutional model used for lesion classification.</p>
     </div>
-    <div class="section-card metric-card">
+
+    <div class="advanced-metric-card">
       <span>Input Size</span>
       <strong>260 × 260</strong>
+      <p>Standardized image resolution used before inference.</p>
     </div>
-    <div class="section-card metric-card">
-      <span>Threshold</span>
+
+    <div class="advanced-metric-card">
+      <span>Decision Threshold</span>
       <strong>0.50</strong>
+      <p>Cutoff used to separate benign and malignant decisions.</p>
     </div>
-    <div class="section-card metric-card">
-      <span>Last Conv Layer</span>
+
+    <div class="advanced-metric-card">
+      <span>Attention Layer</span>
       <strong>{{ result.last_conv_layer }}</strong>
+      <p>Final convolutional feature layer used to produce the Grad-CAM map.</p>
     </div>
-    <div class="section-card metric-card">
-      <span>Validator Score</span>
-      <strong>{{ result.validator_score }}</strong>
-    </div>
-    <div class="section-card metric-card">
-      <span>Final Accuracy</span>
+
+    <div class="advanced-metric-card">
+      <span>Reported Accuracy</span>
       <strong>85.7%</strong>
+      <p>Final classification performance from the selected trained model.</p>
+    </div>
+
+    <div class="advanced-metric-card">
+      <span>Predicted Class</span>
+      <strong>{{ result.label|capitalize }}</strong>
+      <p>Final model outcome based on the lesion image and learned feature patterns.</p>
+    </div>
+  </section>
+
+  <section class="card-grid two">
+    <div class="section-card">
+      <h3>Layer-Based Explainability</h3>
+
+      <div class="advanced-summary-box">
+        <h4>How the heatmap is formed</h4>
+        <p>
+          Grad-CAM extracts class-discriminative spatial activations from the final convolutional representation.
+          This highlights the local visual structures that contributed most strongly to the AI’s classification.
+        </p>
+      </div>
+
+      <ul class="feature-insight-list">
+        <li>The heatmap represents the model’s most influential lesion-focused activation zones.</li>
+        <li>Higher activation values indicate stronger contribution to classification confidence.</li>
+        <li>This view improves interpretability of pattern-, border-, and texture-based analysis.</li>
+        <li>The explanation remains model-based and does not incorporate patient history or symptoms.</li>
+      </ul>
+    </div>
+
+    <div class="section-card">
+      <h3>Decision Boundary Insight</h3>
+
+      <div class="decision-box">
+        The final prediction of <strong>{{ result.label|capitalize }}</strong> was produced after comparing the model output
+        against the predefined threshold. The confidence score of <strong>{{ result.confidence }}%</strong> indicates
+        how strongly the current lesion image aligned with the learned feature distribution for the predicted class.
+      </div>
+
+      <div class="mini-metrics">
+        <div class="metric-box">
+          <span>Benign Probability</span>
+          <strong>{{ result.benign_pct }}%</strong>
+        </div>
+        <div class="metric-box">
+          <span>Malignant Probability</span>
+          <strong>{{ result.malignant_pct }}%</strong>
+        </div>
+        <div class="metric-box">
+          <span>Final Decision</span>
+          <strong>{{ result.risk_badge }}</strong>
+        </div>
+      </div>
     </div>
   </section>
 
   <section class="section-card">
-    <h3>Advanced Interpretation Notes</h3>
-    <ul class="feature-list">
-      <li>Grad-CAM extracts the most relevant spatial activation regions from the selected convolutional layer.</li>
-      <li>The heatmap shows the local structures the model considered important for classification.</li>
-      <li>The result supports explainability, especially for lesion pattern and texture analysis.</li>
-      <li>Even with visual explanation, clinical validation is still essential.</li>
+    <h3>Model Limitation Note</h3>
+    <ul class="feature-insight-list">
+      <li>Grad-CAM shows attention regions, but not full causal reasoning.</li>
+      <li>Strong visual activation does not guarantee clinical severity by itself.</li>
+      <li>The AI output should be interpreted together with clinician expertise and patient context.</li>
+      <li>Even with visual explanation, clinical validation remains essential.</li>
     </ul>
   </section>
 </div>

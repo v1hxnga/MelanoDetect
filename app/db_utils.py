@@ -176,6 +176,22 @@ def get_user_history(user_id):
     return history
 
 
+def delete_history_item(user_id, history_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        DELETE FROM analysis_history
+        WHERE id = ? AND user_id = ?
+    """, (history_id, user_id))
+
+    deleted = cursor.rowcount > 0
+
+    conn.commit()
+    conn.close()
+    return deleted
+
+
 def get_user_by_id(user_id):
     conn = get_connection()
     cursor = conn.cursor()
