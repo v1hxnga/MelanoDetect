@@ -1,6 +1,5 @@
 import os
 import re
-import time
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.utils import secure_filename
@@ -250,109 +249,112 @@ def predict():
     if not logged_in():
         return redirect(url_for("login_page"))
 
-    if "file" not in request.files:
-        flash("No file uploaded.", "error")
-        return redirect(url_for("upload_page"))
+    try:
+        if "file" not in request.files:
+            flash("No file uploaded.", "error")
+            return redirect(url_for("upload_page"))
 
-    file = request.files["file"]
+        file = request.files["file"]
 
-    if file.filename == "":
-        flash("No file selected.", "error")
-        return redirect(url_for("upload_page"))
+        if file.filename == "":
+            flash("No file selected.", "error")
+            return redirect(url_for("upload_page"))
 
-    if not (file and allowed_file(file.filename)):
-        flash("Invalid file format. Please upload JPG, JPEG, or PNG.", "error")
-        return redirect(url_for("upload_page"))
+        if not (file and allowed_file(file.filename)):
+            flash("Invalid file format. Please upload JPG, JPEG, or PNG.", "error")
+            return redirect(url_for("upload_page"))
 
-    filename = secure_filename(file.filename)
-    timestamp_for_file = datetime.now().strftime("%Y%m%d%H%M%S")
-    filename = f"{timestamp_for_file}_{filename}"
+        filename = secure_filename(file.filename)
+        timestamp_for_file = datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = f"{timestamp_for_file}_{filename}"
 
-    upload_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-    file.save(upload_path)
+        upload_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(upload_path)
 
-    is_valid, valid_score = validate_lesion_image(upload_path)
+        is_valid, valid_score = validate_lesion_image(upload_path)
 
-    if not is_valid:
-        if os.path.exists(upload_path):
-            os.remove(upload_path)
+        if not is_valid:
+            if os.path.exists(upload_path):
+                os.remove(upload_path)
 
-        flash(
-            f"Unsupported image. Please upload a clear skin-lesion or dermoscopic image. Validator score: {valid_score:.2f}",
-            "error"
+            flash(
+                f"Unsupported image. Please upload a clear skin-lesion or dermoscopic image. Validator score: {valid_score:.2f}",
+                "error"
+            )
+            return redirect(url_for("upload_page"))
+
+        label, confidence, img_array, model = predict_image(upload_path)
+
+        grad_model, last_conv_layer_name = build_gradcam_model(model)
+
+        heatmap, last_conv_layer_name = make_gradcam_heatmap(
+            img_array=img_array,
+            model=model,
+            grad_model=grad_model,
+            last_conv_layer_name=last_conv_layer_name
         )
+
+        gradcam_filename = f"gradcam_{filename}"
+        gradcam_path = os.path.join(app.config["GRADCAM_FOLDER"], gradcam_filename)
+        save_gradcam_overlay(upload_path, heatmap, gradcam_path)
+
+        confidence_pct = round(confidence * 100, 1)
+
+        if label == "malignant":
+            malignant_pct = confidence_pct
+            benign_pct = round(100 - confidence_pct, 1)
+            risk_badge = "High Risk"
+            next_steps = [
+                "Consult a dermatologist as soon as possible.",
+                "Do not self-diagnose using the AI output alone.",
+                "Keep a copy of this result for reference."
+            ]
+        else:
+            benign_pct = confidence_pct
+            malignant_pct = round(100 - confidence_pct, 1)
+            risk_badge = "Lower Risk"
+            next_steps = [
+                "Monitor the lesion if any visible changes occur.",
+                "Seek professional advice if symptoms persist.",
+                "Use this result only as screening support."
+            ]
+
+        explanation = generate_case_explanation(
+            image_path=upload_path,
+            heatmap=heatmap,
+            label=label,
+            confidence_pct=confidence_pct,
+            risk_badge=risk_badge,
+            benign_pct=benign_pct,
+            malignant_pct=malignant_pct,
+        )
+
+        result = {
+            "label": label,
+            "confidence": confidence_pct,
+            "benign_pct": benign_pct,
+            "malignant_pct": malignant_pct,
+            "risk_badge": risk_badge,
+            "uploaded_image": f"uploads/{filename}",
+            "gradcam_image": f"gradcam/{gradcam_filename}",
+            "explanation": explanation,
+            "next_steps": next_steps,
+            "last_conv_layer": last_conv_layer_name,
+            "validator_score": round(valid_score, 2),
+            "filename": filename,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        session["last_result"] = result
+        save_analysis_result(session["user_id"], result)
+
+        flash("Image analyzed successfully.", "success")
+        return redirect(url_for("results_page"))
+
+    except Exception as e:
+        app.logger.exception("Prediction failed")
+        flash(f"Prediction failed: {str(e)}", "error")
         return redirect(url_for("upload_page"))
-
-    time.sleep(5)
-
-    label, confidence, img_array, model = predict_image(upload_path)
-
-    grad_model, last_conv_layer_name = build_gradcam_model(model)
-
-    heatmap, last_conv_layer_name = make_gradcam_heatmap(
-        img_array=img_array,
-        model=model,
-        grad_model=grad_model,
-        last_conv_layer_name=last_conv_layer_name
-    )
-
-    gradcam_filename = f"gradcam_{filename}"
-    gradcam_path = os.path.join(app.config["GRADCAM_FOLDER"], gradcam_filename)
-    save_gradcam_overlay(upload_path, heatmap, gradcam_path)
-
-    confidence_pct = round(confidence * 100, 1)
-
-    if label == "malignant":
-        malignant_pct = confidence_pct
-        benign_pct = round(100 - confidence_pct, 1)
-        risk_badge = "High Risk"
-        next_steps = [
-            "Consult a dermatologist as soon as possible.",
-            "Do not self-diagnose using the AI output alone.",
-            "Keep a copy of this result for reference."
-        ]
-    else:
-        benign_pct = confidence_pct
-        malignant_pct = round(100 - confidence_pct, 1)
-        risk_badge = "Lower Risk"
-        next_steps = [
-            "Monitor the lesion if any visible changes occur.",
-            "Seek professional advice if symptoms persist.",
-            "Use this result only as screening support."
-        ]
-
-    explanation = generate_case_explanation(
-        image_path=upload_path,
-        heatmap=heatmap,
-        label=label,
-        confidence_pct=confidence_pct,
-        risk_badge=risk_badge,
-        benign_pct=benign_pct,
-        malignant_pct=malignant_pct,
-    )
-
-    result = {
-        "label": label,
-        "confidence": confidence_pct,
-        "benign_pct": benign_pct,
-        "malignant_pct": malignant_pct,
-        "risk_badge": risk_badge,
-        "uploaded_image": f"uploads/{filename}",
-        "gradcam_image": f"gradcam/{gradcam_filename}",
-        "explanation": explanation,
-        "next_steps": next_steps,
-        "last_conv_layer": last_conv_layer_name,
-        "validator_score": round(valid_score, 2),
-        "filename": filename,
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-
-    session["last_result"] = result
-    save_analysis_result(session["user_id"], result)
-
-    flash("Image analyzed successfully.", "success")
-    return redirect(url_for("results_page"))
-
 
 @app.route("/results")
 def results_page():
