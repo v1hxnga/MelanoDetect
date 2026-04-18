@@ -193,6 +193,7 @@
               <form method="POST"
                     action="{{ url_for('delete_history_page', history_id=item['id']) }}"
                     class="delete-form delete-history-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="delete-icon-btn" title="Delete">🗑</button>
               </form>
             </div>

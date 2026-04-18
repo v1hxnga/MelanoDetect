@@ -49,3 +49,15 @@ app/melanodetect.db
 # Python / notebook junk
 __pycache__/
 .ipynb_checkpoints/
+
+.venv/
+.venv-1/
+.venv-2/
+venv/
+__pycache__/
+*.pyc.venv/
+.venv-1/
+.venv-2/
+venv/
+__pycache__/
+*.pyc

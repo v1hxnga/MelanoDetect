@@ -1,8 +1,16 @@
 import os
 import re
-from datetime import datetime
+import uuid
+from datetime import datetime, timedelta
+from functools import wraps
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.utils import secure_filename
+from PIL import Image
+
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from model_utils import predict_image
 from gradcam_utils import build_gradcam_model, make_gradcam_heatmap, save_gradcam_overlay
@@ -18,7 +26,29 @@ from validator_utils import validate_lesion_image
 from explain_utils import generate_case_explanation
 
 app = Flask(__name__)
-app.secret_key = "melanodetect-secret-key-change-this"
+app.secret_key = os.environ.get("SECRET_KEY", "melanodetect-secret-key-change-this")
+
+# ========================
+# SECURITY CONFIG
+# ========================
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(minutes=30),
+    MAX_CONTENT_LENGTH=5 * 1024 * 1024  # 5MB upload limit
+)
+
+# Only enable secure cookies in production/HTTPS
+if os.environ.get("FLASK_ENV") == "production":
+    app.config["SESSION_COOKIE_SECURE"] = True
+
+csrf = CSRFProtect(app)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
@@ -35,12 +65,34 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 init_db()
 
 
+# ========================
+# HELPERS
+# ========================
+
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def logged_in():
     return "user_role" in session
+
+
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not logged_in():
+            return redirect(url_for("login_page"))
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def is_valid_image(filepath):
+    try:
+        with Image.open(filepath) as img:
+            img.verify()
+        return True
+    except Exception:
+        return False
 
 
 def is_valid_email(email):
@@ -67,6 +119,10 @@ def is_strong_password(password):
     return True, "Strong password."
 
 
+# ========================
+# ROUTES
+# ========================
+
 @app.route("/")
 def home():
     if logged_in():
@@ -75,6 +131,7 @@ def home():
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def login_page():
     if request.method == "POST":
         email = request.form.get("email", "").strip()
@@ -102,6 +159,10 @@ def login_page():
                 flash("This account is not registered as a Doctor account.", "error")
             return redirect(url_for("login_page"))
 
+        # Security: clear any old session before issuing a new one
+        session.clear()
+        session.permanent = True
+
         session["user_id"] = user["id"]
         session["user_name"] = user["full_name"]
         session["user_email"] = user["email"]
@@ -115,6 +176,7 @@ def login_page():
 
 
 @app.route("/signup", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def signup_page():
     if request.method == "POST":
         full_name = request.form.get("full_name", "").strip()
@@ -164,6 +226,10 @@ def signup_page():
             flash("Account created, but automatic login failed. Please log in manually.", "error")
             return redirect(url_for("login_page"))
 
+        # Security: clear any old session before issuing a new one
+        session.clear()
+        session.permanent = True
+
         session["user_id"] = user["id"]
         session["user_name"] = user["full_name"]
         session["user_email"] = user["email"]
@@ -183,10 +249,8 @@ def logout():
 
 
 @app.route("/dashboard")
+@login_required
 def dashboard_page():
-    if not logged_in():
-        return redirect(url_for("login_page"))
-
     history_rows = get_user_history(session["user_id"])
     history = [dict(item) for item in history_rows]
 
@@ -226,10 +290,8 @@ def dashboard_page():
 
 
 @app.route("/profile")
+@login_required
 def profile_page():
-    if not logged_in():
-        return redirect(url_for("login_page"))
-
     gender = session.get("user_gender", "male").lower()
 
     if gender == "female":
@@ -245,17 +307,15 @@ def profile_page():
 
 
 @app.route("/upload")
+@login_required
 def upload_page():
-    if not logged_in():
-        return redirect(url_for("login_page"))
     return render_template("upload.html", active_page="upload")
 
 
 @app.route("/predict", methods=["POST"])
+@login_required
+@limiter.limit("10 per minute")
 def predict():
-    if not logged_in():
-        return redirect(url_for("login_page"))
-
     try:
         if "file" not in request.files:
             flash("No file uploaded.", "error")
@@ -271,12 +331,18 @@ def predict():
             flash("Invalid file format. Please upload JPG, JPEG, or PNG.", "error")
             return redirect(url_for("upload_page"))
 
-        filename = secure_filename(file.filename)
-        timestamp_for_file = datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = f"{timestamp_for_file}_{filename}"
+        # Security: UUID filename to avoid collisions / predictable names
+        filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
 
         upload_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
         file.save(upload_path)
+
+        # Security: verify uploaded file is a real image
+        if not is_valid_image(upload_path):
+            if os.path.exists(upload_path):
+                os.remove(upload_path)
+            flash("Invalid image file. Please upload a real JPG or PNG image.", "error")
+            return redirect(url_for("upload_page"))
 
         is_valid, valid_score = validate_lesion_image(upload_path)
 
@@ -285,9 +351,9 @@ def predict():
                 os.remove(upload_path)
 
             flash(
-                f"Unsupported image. Please upload a clear skin-lesion or dermoscopic image. Validator score: {valid_score:.2f}",
-                "error"
-            )
+                    "Unsupported image. Please upload a clear skin-lesion or dermoscopic image.",
+                    "error"
+                )
             return redirect(url_for("upload_page"))
 
         label, confidence, img_array, model = predict_image(upload_path)
@@ -365,10 +431,8 @@ def predict():
 
 
 @app.route("/results")
+@login_required
 def results_page():
-    if not logged_in():
-        return redirect(url_for("login_page"))
-
     result = session.get("last_result")
     if not result:
         history_rows = get_user_history(session["user_id"])
@@ -398,10 +462,8 @@ def results_page():
 
 
 @app.route("/gradcam")
+@login_required
 def gradcam_page():
-    if not logged_in():
-        return redirect(url_for("login_page"))
-
     result = session.get("last_result")
     if not result:
         history_rows = get_user_history(session["user_id"])
@@ -431,10 +493,8 @@ def gradcam_page():
 
 
 @app.route("/history")
+@login_required
 def history_page():
-    if not logged_in():
-        return redirect(url_for("login_page"))
-
     history_rows = get_user_history(session["user_id"])
     history = [dict(item) for item in history_rows]
 
@@ -442,10 +502,8 @@ def history_page():
 
 
 @app.route("/history/delete/<int:history_id>", methods=["POST"])
+@login_required
 def delete_history_page(history_id):
-    if not logged_in():
-        return redirect(url_for("login_page"))
-
     deleted = delete_history_item(session["user_id"], history_id)
 
     if deleted:
@@ -457,10 +515,8 @@ def delete_history_page(history_id):
 
 
 @app.route("/admin")
+@login_required
 def admin_page():
-    if not logged_in():
-        return redirect(url_for("login_page"))
-
     if session.get("user_role") != "Admin":
         return redirect(url_for("dashboard_page"))
 

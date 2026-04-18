@@ -1,10 +1,32 @@
+import os
 import numpy as np
 from PIL import Image
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _is_valid_image_path(path: str) -> bool:
+    """
+    Check file exists and has an allowed image extension.
+    """
+    return (
+        os.path.exists(path)
+        and path.lower().endswith((".jpg", ".jpeg", ".png"))
+    )
+
 
 def _load_rgb(image_path: str) -> np.ndarray:
-    img = Image.open(image_path).convert("RGB")
-    return np.array(img)
+    """
+    Safely load an RGB image after validating the path.
+    """
+    if not _is_valid_image_path(image_path):
+        raise ValueError("Invalid image path or format")
+
+    try:
+        img = Image.open(image_path).convert("RGB")
+        return np.array(img)
+    except Exception:
+        raise ValueError("Corrupted or unreadable image")
 
 
 def _resize_heatmap_to_image(heatmap: np.ndarray, width: int, height: int) -> np.ndarray:
@@ -14,12 +36,18 @@ def _resize_heatmap_to_image(heatmap: np.ndarray, width: int, height: int) -> np
 
 
 def _safe_mean(arr: np.ndarray, default: float = 0.0) -> float:
+    """
+    Safe mean for empty arrays.
+    """
     if arr.size == 0:
         return default
     return float(np.mean(arr))
 
 
 def _safe_std(arr: np.ndarray, default: float = 0.0) -> float:
+    """
+    Safe std for empty arrays.
+    """
     if arr.size == 0:
         return default
     return float(np.std(arr))
@@ -72,6 +100,7 @@ def _compute_metrics(image_path: str, heatmap: np.ndarray) -> dict:
         mid_x = roi_norm.shape[1] // 2
         left = roi_norm[:, :mid_x]
         right = roi_norm[:, roi_norm.shape[1] - mid_x:]
+
         if left.size > 0 and right.size > 0:
             right_flipped = np.fliplr(right)
             min_h = min(left.shape[0], right_flipped.shape[0])
@@ -84,6 +113,7 @@ def _compute_metrics(image_path: str, heatmap: np.ndarray) -> dict:
         mid_y = roi_norm.shape[0] // 2
         top = roi_norm[:mid_y, :]
         bottom = roi_norm[roi_norm.shape[0] - mid_y:, :]
+
         if top.size > 0 and bottom.size > 0:
             bottom_flipped = np.flipud(bottom)
             min_h = min(top.shape[0], bottom_flipped.shape[0])

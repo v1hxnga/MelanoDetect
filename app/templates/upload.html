@@ -23,6 +23,8 @@
   <div class="section-card tilt-card">
     <h3>Upload Area</h3>
     <form action="{{ url_for('predict') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
       <label for="fileInput" class="upload-zone" id="uploadZone">
         <div class="upload-icon">⬆</div>
         <h4>Drag & Drop Image</h4>

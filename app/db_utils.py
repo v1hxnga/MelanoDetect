@@ -1,6 +1,7 @@
 import os
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
+from encryption_utils import encrypt_data, decrypt_data
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "melanodetect.db")
@@ -10,6 +11,34 @@ def get_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def _safe_encrypt(value):
+    """
+    Encrypt values for new records.
+    If encryption fails unexpectedly, return the original value
+    so the app does not break.
+    """
+    if value is None:
+        return None
+    try:
+        return encrypt_data(value)
+    except Exception:
+        return value
+
+
+def _safe_decrypt(value):
+    """
+    Backward-compatible decryption:
+    - if value is encrypted, decrypt it
+    - if value is old plain text, return it unchanged
+    """
+    if value is None:
+        return None
+    try:
+        return decrypt_data(value)
+    except Exception:
+        return value
 
 
 def init_db():
@@ -31,7 +60,9 @@ def init_db():
     columns = [column["name"] for column in cursor.fetchall()]
 
     if "gender" not in columns:
-        cursor.execute("ALTER TABLE users ADD COLUMN gender TEXT NOT NULL DEFAULT 'male'")
+        cursor.execute("""
+            ALTER TABLE users ADD COLUMN gender TEXT NOT NULL DEFAULT 'male'
+        """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS analysis_history (
@@ -53,7 +84,7 @@ def init_db():
     """)
 
     admin_email = "admin@melanodetect.com"
-    admin_password = "Admin@123"
+    admin_password = os.environ.get("ADMIN_PASSWORD", "Admin@123")
 
     cursor.execute("SELECT * FROM users WHERE email = ?", (admin_email,))
     admin = cursor.fetchone()
@@ -143,14 +174,14 @@ def save_analysis_result(user_id, result):
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         user_id,
-        result["uploaded_image"],
-        result["gradcam_image"],
+        _safe_encrypt(result["uploaded_image"]),
+        _safe_encrypt(result["gradcam_image"]),
         result["label"],
         result["confidence"],
         result["benign_pct"],
         result["malignant_pct"],
         result["risk_badge"],
-        result["explanation"],
+        _safe_encrypt(result["explanation"]),
         result["validator_score"],
         result["last_conv_layer"],
         result["timestamp"]
@@ -171,8 +202,18 @@ def get_user_history(user_id):
         ORDER BY id DESC
     """, (user_id,))
 
-    history = cursor.fetchall()
+    rows = cursor.fetchall()
     conn.close()
+
+    history = []
+
+    for row in rows:
+        item = dict(row)
+        item["uploaded_image"] = _safe_decrypt(item["uploaded_image"])
+        item["gradcam_image"] = _safe_decrypt(item["gradcam_image"])
+        item["explanation"] = _safe_decrypt(item["explanation"])
+        history.append(item)
+
     return history
 
 
