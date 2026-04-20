@@ -9,8 +9,6 @@ from werkzeug.utils import secure_filename
 from PIL import Image
 
 from flask_wtf.csrf import CSRFProtect
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 
 from model_utils import predict_image
 from gradcam_utils import build_gradcam_model, make_gradcam_heatmap, save_gradcam_overlay
@@ -38,17 +36,10 @@ app.config.update(
     MAX_CONTENT_LENGTH=5 * 1024 * 1024  # 5MB upload limit
 )
 
-# Only enable secure cookies in production/HTTPS
 if os.environ.get("FLASK_ENV") == "production":
     app.config["SESSION_COOKIE_SECURE"] = True
 
 csrf = CSRFProtect(app)
-
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["200 per day", "50 per hour"]
-)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
@@ -119,6 +110,23 @@ def is_strong_password(password):
     return True, "Strong password."
 
 
+def build_result_from_history_item(item):
+    return {
+        "label": item["label"],
+        "confidence": item["confidence"],
+        "benign_pct": item["benign_pct"],
+        "malignant_pct": item["malignant_pct"],
+        "risk_badge": item["risk_badge"],
+        "uploaded_image": item["uploaded_image"],
+        "gradcam_image": item["gradcam_image"],
+        "explanation": item["explanation"],
+        "next_steps": [],
+        "last_conv_layer": item["last_conv_layer"],
+        "validator_score": item["validator_score"],
+        "timestamp": item["timestamp"]
+    }
+
+
 # ========================
 # ROUTES
 # ========================
@@ -131,7 +139,6 @@ def home():
 
 
 @app.route("/login", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
 def login_page():
     if request.method == "POST":
         email = request.form.get("email", "").strip()
@@ -159,7 +166,6 @@ def login_page():
                 flash("This account is not registered as a Doctor account.", "error")
             return redirect(url_for("login_page"))
 
-        # Security: clear any old session before issuing a new one
         session.clear()
         session.permanent = True
 
@@ -176,7 +182,6 @@ def login_page():
 
 
 @app.route("/signup", methods=["GET", "POST"])
-@limiter.limit("5 per minute")
 def signup_page():
     if request.method == "POST":
         full_name = request.form.get("full_name", "").strip()
@@ -226,7 +231,6 @@ def signup_page():
             flash("Account created, but automatic login failed. Please log in manually.", "error")
             return redirect(url_for("login_page"))
 
-        # Security: clear any old session before issuing a new one
         session.clear()
         session.permanent = True
 
@@ -257,21 +261,7 @@ def dashboard_page():
     latest_result = session.get("last_result")
 
     if not latest_result and history:
-        latest = history[0]
-        latest_result = {
-            "label": latest["label"],
-            "confidence": latest["confidence"],
-            "benign_pct": latest["benign_pct"],
-            "malignant_pct": latest["malignant_pct"],
-            "risk_badge": latest["risk_badge"],
-            "uploaded_image": latest["uploaded_image"],
-            "gradcam_image": latest["gradcam_image"],
-            "explanation": latest["explanation"],
-            "next_steps": [],
-            "last_conv_layer": latest["last_conv_layer"],
-            "validator_score": latest["validator_score"],
-            "timestamp": latest["timestamp"]
-        }
+        latest_result = build_result_from_history_item(history[0])
 
     stats = {
         "total_uploads": len(history),
@@ -314,7 +304,6 @@ def upload_page():
 
 @app.route("/predict", methods=["POST"])
 @login_required
-@limiter.limit("10 per minute")
 def predict():
     try:
         if "file" not in request.files:
@@ -331,13 +320,11 @@ def predict():
             flash("Invalid file format. Please upload JPG, JPEG, or PNG.", "error")
             return redirect(url_for("upload_page"))
 
-        # Security: UUID filename to avoid collisions / predictable names
         filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
 
         upload_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
         file.save(upload_path)
 
-        # Security: verify uploaded file is a real image
         if not is_valid_image(upload_path):
             if os.path.exists(upload_path):
                 os.remove(upload_path)
@@ -351,9 +338,9 @@ def predict():
                 os.remove(upload_path)
 
             flash(
-                    "Unsupported image. Please upload a clear skin-lesion or dermoscopic image.",
-                    "error"
-                )
+                "Unsupported image. Please upload a clear skin-lesion or dermoscopic image.",
+                "error"
+            )
             return redirect(url_for("upload_page"))
 
         label, confidence, img_array, model = predict_image(upload_path)
@@ -434,26 +421,13 @@ def predict():
 @login_required
 def results_page():
     result = session.get("last_result")
+
     if not result:
         history_rows = get_user_history(session["user_id"])
         history = [dict(item) for item in history_rows]
 
         if history:
-            latest = history[0]
-            result = {
-                "label": latest["label"],
-                "confidence": latest["confidence"],
-                "benign_pct": latest["benign_pct"],
-                "malignant_pct": latest["malignant_pct"],
-                "risk_badge": latest["risk_badge"],
-                "uploaded_image": latest["uploaded_image"],
-                "gradcam_image": latest["gradcam_image"],
-                "explanation": latest["explanation"],
-                "next_steps": [],
-                "last_conv_layer": latest["last_conv_layer"],
-                "validator_score": latest["validator_score"],
-                "timestamp": latest["timestamp"]
-            }
+            result = build_result_from_history_item(history[0])
         else:
             flash("No analysis result available yet. Upload an image first.", "error")
             return redirect(url_for("upload_page"))
@@ -465,26 +439,13 @@ def results_page():
 @login_required
 def gradcam_page():
     result = session.get("last_result")
+
     if not result:
         history_rows = get_user_history(session["user_id"])
         history = [dict(item) for item in history_rows]
 
         if history:
-            latest = history[0]
-            result = {
-                "label": latest["label"],
-                "confidence": latest["confidence"],
-                "benign_pct": latest["benign_pct"],
-                "malignant_pct": latest["malignant_pct"],
-                "risk_badge": latest["risk_badge"],
-                "uploaded_image": latest["uploaded_image"],
-                "gradcam_image": latest["gradcam_image"],
-                "explanation": latest["explanation"],
-                "next_steps": [],
-                "last_conv_layer": latest["last_conv_layer"],
-                "validator_score": latest["validator_score"],
-                "timestamp": latest["timestamp"]
-            }
+            result = build_result_from_history_item(history[0])
         else:
             flash("No Grad-CAM result available yet. Upload an image first.", "error")
             return redirect(url_for("upload_page"))
@@ -507,6 +468,7 @@ def delete_history_page(history_id):
     deleted = delete_history_item(session["user_id"], history_id)
 
     if deleted:
+        session.pop("last_result", None)
         flash("History record deleted successfully.", "success")
     else:
         flash("Unable to delete that record.", "error")

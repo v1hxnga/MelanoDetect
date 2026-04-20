@@ -1,7 +1,6 @@
 import os
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
-from encryption_utils import encrypt_data, decrypt_data
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "melanodetect.db")
@@ -11,34 +10,6 @@ def get_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
-
-
-def _safe_encrypt(value):
-    """
-    Encrypt values for new records.
-    If encryption fails unexpectedly, return the original value
-    so the app does not break.
-    """
-    if value is None:
-        return None
-    try:
-        return encrypt_data(value)
-    except Exception:
-        return value
-
-
-def _safe_decrypt(value):
-    """
-    Backward-compatible decryption:
-    - if value is encrypted, decrypt it
-    - if value is old plain text, return it unchanged
-    """
-    if value is None:
-        return None
-    try:
-        return decrypt_data(value)
-    except Exception:
-        return value
 
 
 def init_db():
@@ -174,14 +145,14 @@ def save_analysis_result(user_id, result):
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         user_id,
-        _safe_encrypt(result["uploaded_image"]),
-        _safe_encrypt(result["gradcam_image"]),
+        result["uploaded_image"],
+        result["gradcam_image"],
         result["label"],
         result["confidence"],
         result["benign_pct"],
         result["malignant_pct"],
         result["risk_badge"],
-        _safe_encrypt(result["explanation"]),
+        result["explanation"],
         result["validator_score"],
         result["last_conv_layer"],
         result["timestamp"]
@@ -205,16 +176,7 @@ def get_user_history(user_id):
     rows = cursor.fetchall()
     conn.close()
 
-    history = []
-
-    for row in rows:
-        item = dict(row)
-        item["uploaded_image"] = _safe_decrypt(item["uploaded_image"])
-        item["gradcam_image"] = _safe_decrypt(item["gradcam_image"])
-        item["explanation"] = _safe_decrypt(item["explanation"])
-        history.append(item)
-
-    return history
+    return [dict(row) for row in rows]
 
 
 def delete_history_item(user_id, history_id):
