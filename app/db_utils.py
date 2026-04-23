@@ -207,3 +207,101 @@ def get_user_by_id(user_id):
         return dict(user)
 
     return None
+
+# ========================
+# ADMIN FEATURES
+# ========================
+
+def get_all_users():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT u.*, COUNT(a.id) AS upload_count
+        FROM users u
+        LEFT JOIN analysis_history a ON u.id = a.user_id
+        GROUP BY u.id
+        ORDER BY u.id DESC
+    """)
+
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def delete_user(user_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM analysis_history WHERE user_id = ?", (user_id,))
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+    conn.commit()
+    conn.close()
+
+
+def reset_user_password(user_id, new_password):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE users
+        SET password_hash = ?
+        WHERE id = ?
+    """, (generate_password_hash(new_password), user_id))
+
+    conn.commit()
+    conn.close()
+
+
+def get_all_analysis():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT a.*, u.full_name, u.email
+        FROM analysis_history a
+        JOIN users u ON a.user_id = u.id
+        ORDER BY a.id DESC
+    """)
+
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def delete_analysis_admin(history_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM analysis_history WHERE id = ?", (history_id,))
+
+    conn.commit()
+    conn.close()
+
+
+def get_admin_stats():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM users")
+    total_users = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM analysis_history")
+    total_analysis = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM analysis_history WHERE label = 'malignant'")
+    malignant = cursor.fetchone()[0]
+
+    benign = total_analysis - malignant
+    malignant_pct = round((malignant / total_analysis) * 100, 1) if total_analysis else 0
+    benign_pct = round((benign / total_analysis) * 100, 1) if total_analysis else 0
+
+    conn.close()
+
+    return {
+        "total_users": total_users,
+        "total_analysis": total_analysis,
+        "malignant_pct": malignant_pct,
+        "benign_pct": benign_pct
+    }

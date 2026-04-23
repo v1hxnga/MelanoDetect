@@ -20,13 +20,16 @@
         </div>
       </a>
 
-      <nav class="main-nav">
-        <a class="{% if active_page == 'profile' %}active{% endif %}" href="{{ url_for('profile_page') }}">Profile</a>
-        <a class="{% if active_page == 'upload' %}active{% endif %}" href="{{ url_for('upload_page') }}">Upload</a>
-        <a class="{% if active_page == 'results' %}active{% endif %}" href="{{ url_for('results_page') }}">Results</a>
-        <a class="{% if active_page == 'history' %}active{% endif %}" href="{{ url_for('history_page') }}">History</a>
-        <a class="logout-link" href="{{ url_for('logout') }}">Logout</a>
-      </nav>
+<nav class="main-nav">
+  {% if session.get("user_role") == "Admin" %}
+    <a class="{% if active_page == 'admin' %}active{% endif %}" href="{{ url_for('admin_page') }}">Admin</a>
+  {% endif %}
+  <a class="{% if active_page == 'profile' %}active{% endif %}" href="{{ url_for('profile_page') }}">Profile</a>
+  <a class="{% if active_page == 'upload' %}active{% endif %}" href="{{ url_for('upload_page') }}">Upload</a>
+  <a class="{% if active_page == 'results' %}active{% endif %}" href="{{ url_for('results_page') }}">Results</a>
+  <a class="{% if active_page == 'history' %}active{% endif %}" href="{{ url_for('history_page') }}">History</a>
+  <a class="logout-link" href="{{ url_for('logout') }}">Logout</a>
+</nav>
     </div>
   </header>
   {% endif %}

@@ -1,66 +1,375 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div>
-  <h1 class="text-4xl font-bold mb-2">Admin Dashboard</h1>
-  <p class="text-gray-300 mb-8">Model Performance & Analytics</p>
+<style>
+  .admin-wrap {
+    padding: 18px 0 10px;
+  }
 
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-      <div class="text-gray-400 text-sm">Accuracy</div>
-      <div class="text-2xl font-bold text-green-400">{{ metrics.accuracy }}</div>
+  .admin-top {
+    margin-bottom: 28px;
+  }
+
+  .admin-top h1 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #13233d;
+    margin: 0 0 8px;
+  }
+
+  .admin-top p {
+    color: #607089;
+    font-size: 1rem;
+    margin: 0;
+  }
+
+  .admin-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+
+  .admin-stat-card {
+    background: #ffffff;
+    border: 1px solid rgba(53, 95, 170, 0.08);
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 12px 28px rgba(18, 35, 61, 0.06);
+  }
+
+  .admin-stat-label {
+    font-size: 0.95rem;
+    color: #6c7a92;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+
+  .admin-stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #13233d;
+    line-height: 1;
+  }
+
+  .admin-stat-danger .admin-stat-value {
+    color: #c62828;
+  }
+
+  .admin-stat-success .admin-stat-value {
+    color: #1f8f5f;
+  }
+
+  .admin-section {
+    background: #ffffff;
+    border: 1px solid rgba(53, 95, 170, 0.08);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 12px 28px rgba(18, 35, 61, 0.06);
+    margin-bottom: 24px;
+  }
+
+  .admin-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+
+  .admin-section h2 {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #13233d;
+  }
+
+  .admin-section-sub {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #6c7a92;
+  }
+
+  .admin-table-wrap {
+    overflow-x: auto;
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 980px;
+  }
+
+  .admin-table thead th {
+    text-align: left;
+    padding: 14px 16px;
+    font-size: 0.92rem;
+    color: #50617d;
+    background: #f7faff;
+    border-bottom: 1px solid #e3ebf5;
+    font-weight: 700;
+  }
+
+  .admin-table tbody td {
+    padding: 15px 16px;
+    border-bottom: 1px solid #edf2f8;
+    color: #1a2d49;
+    font-size: 0.96rem;
+    vertical-align: middle;
+  }
+
+  .admin-table tbody tr:hover {
+    background: #fbfdff;
+  }
+
+  .admin-role-badge,
+  .admin-result-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    border: 1px solid transparent;
+  }
+
+  .role-admin {
+    background: rgba(80, 105, 255, 0.12);
+    color: #3657e8;
+    border-color: rgba(80, 105, 255, 0.16);
+  }
+
+  .role-doctor {
+    background: rgba(38, 166, 154, 0.12);
+    color: #0f766e;
+    border-color: rgba(38, 166, 154, 0.16);
+  }
+
+  .result-benign {
+    background: rgba(41, 211, 178, 0.13);
+    color: #12795d;
+    border-color: rgba(41, 211, 178, 0.18);
+  }
+
+  .result-malignant {
+    background: rgba(255, 106, 168, 0.12);
+    color: #c6285a;
+    border-color: rgba(255, 106, 168, 0.18);
+  }
+
+  .admin-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .admin-inline-form {
+    margin: 0;
+  }
+
+  .admin-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 9px 14px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+  }
+
+  .admin-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .admin-btn-secondary {
+    background: #eef4fb;
+    color: #294766;
+    border: 1px solid #d8e5f3;
+  }
+
+  .admin-btn-danger {
+    background: #fff1f2;
+    color: #c62828;
+    border: 1px solid #ffd5da;
+  }
+
+  .admin-link {
+    color: #3660f4;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .admin-link:hover {
+    text-decoration: underline;
+  }
+
+  .admin-empty {
+    color: #70819d;
+    margin: 0;
+    padding: 8px 0 0;
+  }
+
+  @media (max-width: 1100px) {
+    .admin-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 700px) {
+    .admin-stats {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-top h1 {
+      font-size: 2rem;
+    }
+  }
+</style>
+
+<section class="admin-wrap">
+  <div class="admin-top">
+    <h1>Admin Panel</h1>
+    <p>Monitor users, predictions, and system activity from one centralized dashboard.</p>
+  </div>
+
+  <div class="admin-stats">
+    <div class="admin-stat-card">
+      <div class="admin-stat-label">Total Users</div>
+      <div class="admin-stat-value">{{ stats.total_users }}</div>
     </div>
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-      <div class="text-gray-400 text-sm">Precision</div>
-      <div class="text-2xl font-bold text-cyan-400">{{ metrics.precision_malignant }}</div>
+
+    <div class="admin-stat-card">
+      <div class="admin-stat-label">Total Analyses</div>
+      <div class="admin-stat-value">{{ stats.total_analysis }}</div>
     </div>
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-      <div class="text-gray-400 text-sm">Recall</div>
-      <div class="text-2xl font-bold text-purple-400">{{ metrics.recall_malignant }}</div>
+
+    <div class="admin-stat-card admin-stat-danger">
+      <div class="admin-stat-label">Malignant Cases</div>
+      <div class="admin-stat-value">{{ stats.malignant_pct }}%</div>
     </div>
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-      <div class="text-gray-400 text-sm">F1 Score</div>
-      <div class="text-2xl font-bold text-orange-400">{{ metrics.f1_malignant }}</div>
-    </div>
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-      <div class="text-gray-400 text-sm">Threshold</div>
-      <div class="text-2xl font-bold text-yellow-300">{{ metrics.threshold }}</div>
-    </div>
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-      <div class="text-gray-400 text-sm">Model</div>
-      <div class="text-lg font-bold text-pink-300">{{ metrics.model_name }}</div>
+
+    <div class="admin-stat-card admin-stat-success">
+      <div class="admin-stat-label">Benign Cases</div>
+      <div class="admin-stat-value">{{ stats.benign_pct }}%</div>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
-      <h2 class="text-2xl font-bold mb-4">Dataset Summary</h2>
-      <div class="space-y-3 text-gray-200">
-        <p><strong>Training Samples:</strong> {{ metrics.train_samples }}</p>
-        <p><strong>Validation Samples:</strong> {{ metrics.validation_samples }}</p>
-        <p><strong>Test Samples:</strong> {{ metrics.test_samples }}</p>
-        <p><strong>Input Size:</strong> {{ metrics.input_size }}</p>
+  <div class="admin-section">
+    <div class="admin-section-header">
+      <div>
+        <h2>User Management</h2>
+        <p class="admin-section-sub">View all registered users, reset passwords, and remove accounts when needed.</p>
       </div>
     </div>
 
-    <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
-      <h2 class="text-2xl font-bold mb-4">Training Details</h2>
-      <div class="space-y-3 text-gray-200">
-        <p><strong>Optimizer:</strong> {{ metrics.optimizer }}</p>
-        <p><strong>Loss Function:</strong> {{ metrics.loss_function }}</p>
-        <p><strong>Epochs:</strong> {{ metrics.epochs }}</p>
-        <p><strong>Selected Goal:</strong> Highest Accuracy</p>
+    {% if users and users|length > 0 %}
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Uploads</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+              <tr>
+                <td>{{ user.full_name }}</td>
+                <td>{{ user.email }}</td>
+                <td>
+                  <span class="admin-role-badge {% if user.role == 'Admin' %}role-admin{% else %}role-doctor{% endif %}">
+                    {{ user.role }}
+                  </span>
+                </td>
+                <td>{{ user.upload_count }}</td>
+                <td>
+                  <div class="admin-actions">
+                    <form method="POST" action="{{ url_for('admin_reset_password', user_id=user.id) }}" class="admin-inline-form">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="admin-btn admin-btn-secondary">Reset Password</button>
+                    </form>
+
+                    {% if user.email != 'admin@melanodetect.com' %}
+                      <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" class="admin-inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="admin-btn admin-btn-danger">Delete User</button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-    </div>
+    {% else %}
+      <p class="admin-empty">No users found.</p>
+    {% endif %}
   </div>
 
-  <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mt-6">
-    <h2 class="text-2xl font-bold mb-4">Final Selected Model</h2>
-    <p class="text-gray-200 leading-7">
-      The current deployed model is the fine-tuned EfficientNetB0 model trained with 260×260 input images.
-      This model achieved the highest test accuracy of <strong>{{ metrics.accuracy }}</strong> using a threshold of
-      <strong>{{ metrics.threshold }}</strong>.
-    </p>
+  <div class="admin-section">
+    <div class="admin-section-header">
+      <div>
+        <h2>Global Analysis Management</h2>
+        <p class="admin-section-sub">Review all system predictions, confidence values, uploaded images, and Grad-CAM outputs.</p>
+      </div>
+    </div>
+
+    {% if analyses and analyses|length > 0 %}
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Result</th>
+              <th>Confidence</th>
+              <th>Date</th>
+              <th>Image</th>
+              <th>Grad-CAM</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in analyses %}
+              <tr>
+                <td>{{ a.full_name }}</td>
+                <td>
+                  <span class="admin-result-badge {% if a.label == 'malignant' %}result-malignant{% else %}result-benign{% endif %}">
+                    {{ a.label|capitalize }}
+                  </span>
+                </td>
+                <td>{{ a.confidence }}%</td>
+                <td>{{ a.timestamp }}</td>
+                <td>
+                  <a href="{{ url_for('static', filename=a.uploaded_image) }}" target="_blank" class="admin-link">View Image</a>
+                </td>
+                <td>
+                  {% if a.gradcam_image %}
+                    <a href="{{ url_for('static', filename=a.gradcam_image) }}" target="_blank" class="admin-link">View Heatmap</a>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  <form method="POST" action="{{ url_for('admin_delete_analysis', history_id=a.id) }}" class="admin-inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="admin-btn admin-btn-danger">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="admin-empty">No analysis records found.</p>
+    {% endif %}
   </div>
-</div>
+</section>
+
 {% endblock %}

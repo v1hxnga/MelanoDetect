@@ -18,7 +18,13 @@ from db_utils import (
     authenticate_user,
     save_analysis_result,
     get_user_history,
-    delete_history_item
+    delete_history_item,
+    get_all_users,
+    delete_user,
+    reset_user_password,
+    get_all_analysis,
+    delete_analysis_admin,
+    get_admin_stats
 )
 from validator_utils import validate_lesion_image
 from explain_utils import generate_case_explanation
@@ -54,7 +60,6 @@ os.makedirs(GRADCAM_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
 init_db()
-
 
 # ========================
 # HELPERS
@@ -125,7 +130,6 @@ def build_result_from_history_item(item):
         "validator_score": item["validator_score"],
         "timestamp": item["timestamp"]
     }
-
 
 # ========================
 # ROUTES
@@ -475,6 +479,9 @@ def delete_history_page(history_id):
 
     return redirect(url_for("history_page"))
 
+# ========================
+# ADMIN PANEL
+# ========================
 
 @app.route("/admin")
 @login_required
@@ -482,7 +489,51 @@ def admin_page():
     if session.get("user_role") != "Admin":
         return redirect(url_for("dashboard_page"))
 
-    return redirect(url_for("dashboard_page"))
+    users = get_all_users()
+    analyses = get_all_analysis()
+    stats = get_admin_stats()
+
+    return render_template(
+        "admin.html",
+        users=users,
+        analyses=analyses,
+        stats=stats,
+        active_page="admin"
+    )
+
+
+@app.route("/admin/delete_user/<int:user_id>", methods=["POST"])
+@login_required
+def admin_delete_user(user_id):
+    if session.get("user_role") != "Admin":
+        return redirect(url_for("dashboard_page"))
+
+    delete_user(user_id)
+    flash("User deleted successfully.", "success")
+    return redirect(url_for("admin_page"))
+
+
+@app.route("/admin/reset_password/<int:user_id>", methods=["POST"])
+@login_required
+def admin_reset_password(user_id):
+    if session.get("user_role") != "Admin":
+        return redirect(url_for("dashboard_page"))
+
+    new_password = "Temp@123"
+    reset_user_password(user_id, new_password)
+    flash(f"Password reset successfully. Temporary password: {new_password}", "success")
+    return redirect(url_for("admin_page"))
+
+
+@app.route("/admin/delete_analysis/<int:history_id>", methods=["POST"])
+@login_required
+def admin_delete_analysis(history_id):
+    if session.get("user_role") != "Admin":
+        return redirect(url_for("dashboard_page"))
+
+    delete_analysis_admin(history_id)
+    flash("Analysis deleted successfully.", "success")
+    return redirect(url_for("admin_page"))
 
 
 if __name__ == "__main__":
