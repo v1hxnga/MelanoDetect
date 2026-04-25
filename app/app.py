@@ -61,6 +61,13 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
 init_db()
 
+@app.after_request
+def add_no_cache_headers(response):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 # ========================
 # HELPERS
 # ========================
@@ -258,6 +265,7 @@ def signup_page():
 @app.route("/logout")
 def logout():
     session.clear()
+    flash("You have been logged out successfully.", "success")
     return redirect(url_for("login_page"))
 
 
