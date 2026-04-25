@@ -39,7 +39,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     PERMANENT_SESSION_LIFETIME=timedelta(minutes=30),
-    MAX_CONTENT_LENGTH=5 * 1024 * 1024  # 5MB upload limit
+    MAX_CONTENT_LENGTH=50 * 1024 * 1024  # 50MB upload limit
 )
 
 if os.environ.get("FLASK_ENV") == "production":
@@ -130,6 +130,11 @@ def build_result_from_history_item(item):
         "validator_score": item["validator_score"],
         "timestamp": item["timestamp"]
     }
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    flash("The uploaded image is too large. Please upload an image smaller than 50MB.", "error")
+    return redirect(url_for("upload_page"))
 
 # ========================
 # ROUTES
