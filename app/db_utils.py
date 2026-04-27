@@ -71,12 +71,6 @@ def init_db():
             "Admin",
             "male"
         ))
-    else:
-        cursor.execute("""
-            UPDATE users
-            SET gender = COALESCE(gender, 'male')
-            WHERE email = ?
-        """, (admin_email,))
 
     conn.commit()
     conn.close()
@@ -208,6 +202,7 @@ def get_user_by_id(user_id):
 
     return None
 
+
 # ========================
 # ADMIN FEATURES
 # ========================
@@ -291,17 +286,21 @@ def get_admin_stats():
     total_analysis = cursor.fetchone()[0]
 
     cursor.execute("SELECT COUNT(*) FROM analysis_history WHERE label = 'malignant'")
-    malignant = cursor.fetchone()[0]
+    malignant_count = cursor.fetchone()[0]
 
-    benign = total_analysis - malignant
-    malignant_pct = round((malignant / total_analysis) * 100, 1) if total_analysis else 0
-    benign_pct = round((benign / total_analysis) * 100, 1) if total_analysis else 0
+    cursor.execute("SELECT COUNT(*) FROM analysis_history WHERE label = 'benign'")
+    benign_count = cursor.fetchone()[0]
+
+    malignant_pct = round((malignant_count / total_analysis) * 100, 1) if total_analysis else 0
+    benign_pct = round((benign_count / total_analysis) * 100, 1) if total_analysis else 0
 
     conn.close()
 
     return {
         "total_users": total_users,
         "total_analysis": total_analysis,
+        "malignant_count": malignant_count,
+        "benign_count": benign_count,
         "malignant_pct": malignant_pct,
         "benign_pct": benign_pct
     }
