@@ -3,6 +3,9 @@ import re
 import uuid
 from datetime import datetime, timedelta
 from functools import wraps
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_limiter.errors import RateLimitExceeded
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.utils import secure_filename
@@ -30,6 +33,12 @@ from validator_utils import validate_lesion_image
 from explain_utils import generate_case_explanation
 
 app = Flask(__name__)
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=[]
+)
+
 app.secret_key = os.environ.get("SECRET_KEY", "melanodetect-secret-key-change-this")
 
 # ========================
@@ -155,6 +164,7 @@ def home():
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute", methods=["POST"])
 def login_page():
     if request.method == "POST":
         email = request.form.get("email", "").strip()
@@ -548,6 +558,11 @@ def admin_delete_analysis(history_id):
     flash("Analysis deleted successfully.", "success")
     return redirect(url_for("admin_page"))
 
+@app.errorhandler(RateLimitExceeded)
+def handle_rate_limit_error(e):
+    flash("Too many login attempts. Please wait 1 minute and try again.", "error")
+    return redirect(url_for("login_page"))
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)
+
